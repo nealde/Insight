@@ -1,13 +1,9 @@
 # CloudComparison
 
-Efficiently determining large file differences at scale
-
-Data ingestion: Spark for batch processing
-
-Data storage: Redis or Redshift for temporary storage
-
-Processing: Implement algorithms in Spark
-
+Efficiently determining large file differences at scale  
+Data ingestion: Spark for batch processing  
+Data storage: Redis or Redshift for temporary storage  
+Processing: Implement algorithms in Spark  
 Frontend: Dash, flask, command line. Dash allows for direct file uploads (up to ~1GB, then it fails)
 
 Tasks:
