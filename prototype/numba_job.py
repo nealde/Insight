@@ -1,8 +1,9 @@
 from operator import add
 from pyspark import SparkContext
 # sc = SparkContext(appName="LeibnizPI")
+from numba import jit
 
-
+@jit(nopython=True)
 def Msum(n):
     megaN = 1000000*n
     s = 0.0
@@ -13,7 +14,7 @@ def Msum(n):
     return s
 
 def LeibnizPi(Nterms):
-    sc = SparkContext(appName="LeibnizPI")
+    sc = SparkContext(appName="LeibnizPI_numba")
     piOver4Minus1 = sc.parallelize(range(0,Nterms+1), 20).map(Msum).reduce(add)
     sc.stop()
     return 4*(1+piOver4Minus1)
