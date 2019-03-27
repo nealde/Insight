@@ -32,9 +32,10 @@ mapper = spark_cython('mfun','Msum_c')
 #     return s
 
 def LeibnizPi(Nterms):
-    sc = SparkContext(appName="LeibnizPI")
+    sc = SparkContext(appName="LeibnizPICython")
     sc.addPyFile("mfun.pyx")
     piOver4Minus1 = sc.parallelize(range(0,Nterms+1), 20).map(mapper).reduce(add)
+    sc.stop()
     return 4*(1+piOver4Minus1)
 
 print(LeibnizPi(999))
