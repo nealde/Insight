@@ -9,7 +9,7 @@ sc = SparkContext(appName="Text")
 print("loading files...")
 st = time.time()
 
-files = sc.textFile("pq*.csv") \
+files = sc.textFile("s3n://neal-dawson-elli-insight-data/insight/posts_questions/pq000.csv") \
 .map(lambda line: line.split(",")[1]) \
 .cache()
 
@@ -32,13 +32,13 @@ print("training, total time:", time.time()-st)
 candidateTf = hashingTF.transform(candidate)
 candidateTfIdf = idf.transform(candidateTf)
 similarities = tfidf.map(lambda v: v.dot(candidateTfIdf) / (v.norm(2) * candidateTfIdf.norm(2)))
-for i in enumerate(similarities.collect()):
-    print(i)
+#for i in enumerate(similarities.collect()):
+#    print(i)
 
-%time topFive = sorted(enumerate(similarities.collect()), key= lambda kv: kv[1])[0:5]
+topFive = sorted(enumerate(similarities.collect()), key= lambda kv: kv[1])[0:5]
 # topFive = sorted(enumerate(similarities.collect()), key=lambda (k, v): -v)[0:5]
 for idx, val in topFive:
-    print("doc '%s' has score %.4f" % (d2['body'][idx], val))
+    print("doc '%s' has score %.4f" % (files.take(idx), val))
 
 # def train():
     
