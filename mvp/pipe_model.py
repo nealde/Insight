@@ -1,4 +1,5 @@
-from pyspark.sql import SparkSession
+from pyspark.sql import SparkSession, DataFrame
+from pyspark.ml import Pipeline, Transformer
 from pyspark.ml.feature import HashingTF, IDF, IDFModel, Tokenizer
 from pyspark.sql.functions import udf
 from pyspark.sql.types import StringType
@@ -6,10 +7,32 @@ from pyspark.sql.types import StringType
 #from pyspark.ml.feature import Normalizer 
 #from pyspark.mllib.linalg.distributed import IndexedRow, IndexedRowMatrix 
 
-sc = SparkSession.builder.appName("TextProcess").getOrCreate()
+sc = SparkSession.builder.appName("TextPipeline").getOrCreate()
 
-dirtyData = sc.read.csv("s3n://neal-dawson-elli-insight-data/insight/final2/questions/201703-0000000000*.csv.gz", header=True, multiLine=True, escape='"')
+dirtyData = sc.read.csv("s3n://neal-dawson-elli-insight-data/insight/final2/questions/2017*.csv.gz", header=True, multiLine=True, escape='"')
+
 dirtyData = dirtyData.select('id','title','body','tags','accepted_answer_id')
+
+# CUSTOM TRANSFORMER ----------------------------------------------------------------
+class TextCleaner(Transformer):
+    """
+    A custom Transformer which drops all columns that have at least one of the
+    words from the banned_list in the name.
+    """
+
+    def __init__(self, inputCol='body', outputCol='cleaned_body'):
+        super(TextCleaner, self).__init__()
+#         self.banned_list = banned_list
+    def clean(line):
+        line = line.lower().replace("\n"," ").replace("\r","").replace(',',"").replace(">","> ").replace("<", " <")
+        return line
+    clean_udf = udf(lambda r: clean(r), StringType())
+
+    def _transform(self, df: DataFrame) -> DataFrame:
+        df = df.withColumn('cleaned_body', self.clean_udf(df['body']))
+        df = df.drop('body')
+    #         df = df.drop(*[x for x in df.columns if any(y in x for y in self.banned_list)])
+        return df
 
 def clean(line):
     line = line.lower().replace("\n"," ").replace("\r","").replace(',',"").replace(">","> ").replace("<", " <")
@@ -19,25 +42,40 @@ clean_udf = udf(lambda r: clean(r), StringType())
 #text = "<p> i am trying to create a report to display a summary of the values of the columns for each row.   a basic analogy would an inventory listing.  say i have about 15 locations like 2a 2b 2c 3a 3b 3c etc.   each location has a variety of items and the items each have a specific set of common descriptions i.e. a rating of 1-9 boolean y or n another boolean y or n.  it looks something like this:</p>   <pre> <code> 2a   4       y       n 2a   5       y       y 2a   5       n       y 2a   6       n       n       ... 2b   4       n       y   2b   4       y       y       ...etc. </code> </pre>   <p> what i would like to produce is a list of locations and summary counts of each attribute:</p>   <pre> <code> location    1 2 3 4 5 6 7 8 9      y  n        y n      total 2a                1 2 1            2  2        2 2        4 2b                2                1  1        2          2 ... ___________________________________________________________ totals            3 2 1            3  3        4 2        6 </code> </pre>   <p> the query returns fields:  </p>   <pre> <code> location_cd string   desc_cd int  y_n_1 string  y_n_2 string </code> </pre>   <p> i have tried grouping by location but cannot get the summaries to work.   i tried putting it in a table but that would only take the original query.  i tried to create datasets for each unit and create variables in each one for each of the criteria but that hasn't worked yet either.  but maybe i am way off track and crosstabs would work better?  i tried that and got a total mess the first time.  maybe a bunch of subreports?</p>   <p> can someone point me in the correct direction please?    it seemed easy when i started out but now i am getting nowhere.  i can get the report to print out the raw data but all i need are totals for each column broken down out by location.  </p> "
 
 dirtyData = dirtyData.withColumn('cleaned_body', clean_udf(dirtyData['body']))
-dirtyData = dirtyData.select('id','title','cleaned_body','tags','accepted_answer_id')
+dirtyData.drop('body')
+#dirtyData = dirtyData.select('id','title','cleaned_body','tags','accepted_answer_id')
 #dirtyData.select('cleaned_body').show()
 
-tk = Tokenizer(inputCol="cleaned_body", outputCol="words")
-words = tk.transform(dirtyData)
-# w = words.collect()
-hashingTF = HashingTF(inputCol="words", outputCol='rawFeatures')
-tf = hashingTF.transform(words)
+#cleaner = TextCleaner(inputCol='body', outputCol='cleaned_body')
+#dirtyData = cleaner.transform(dirtyData)
 
+tokenizer = Tokenizer(inputCol="cleaned_body", outputCol="words")
+hashingTF = HashingTF(inputCol="words", outputCol="rawFeatures", numFeatures=2**12)
 idf = IDF(inputCol="rawFeatures", outputCol="features")
-idftr = idf.fit(tf)
-rescaledData = idftr.transform(tf)
-#rescaledData.cache()
+pipeline = Pipeline(stages=[tokenizer, hashingTF, idf])
+
+# Fit the pipeline to training documents.
+model = pipeline.fit(dirtyData)
 
 idfpath = 's3n://neal-dawson-elli-insight-data/models/idf-model'
 parquetpath = 's3n://neal-dawson-elli-insight-data/models/b1'
 
-idftr.save(idfpath)
-rescaledData.select('id','title','cleaned_body','features','tags','accepted_answer_id').write.parquet(parquetpath)
+model.write().overwrite().save(idfpath)
+dirtyData = model.transform(dirtyData)
+
+#idftr.save(idfpath)
+try:
+    old_data = sc.read.parquet(parquetpath)
+    dirtyData.union(old_data)
+    #SaveMode.Overwrite
+    dirtyData.select('id','title','cleaned_body','features','tags').write.mode(SaveMode.Overwrite).parquet(parquetpath)
+
+# pyspark.sql.analysisexception
+except:
+    print("file not found - continuing")
+#dirtyData.select('id','title','cleaned_body','features','tags').write.overwrite.parquet(parquetpath)
+#dirtyData.select('id','title','cleaned_body','features','tags','accepted_answer_id').write.overwrite().save.parquet(parquetpath).parquet(parquetpath)
+
 #loadedModel = IDFModel.load(idfpath)
 
 #sentenceData = spark.createDataFrame([(0.0, text),],['label','sentence'])
