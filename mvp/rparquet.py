@@ -65,7 +65,8 @@ def store_redis(row):
         print(tags)
 	return row
     idd = row['id']
-    #title = row['title']
+    title = row['title']
+    
     #body = row['cleaned_body']
     #creation = row['creation_date']
     #try:
@@ -73,7 +74,8 @@ def store_redis(row):
     #except:
     #    acc=""
     
-    #embed = row['features']
+    embed = str(row['features'])
+    r.set(idd, title+','+embed)
     #tags = row['tags']
     for tag in tags:
         curr = r.get(tag)
