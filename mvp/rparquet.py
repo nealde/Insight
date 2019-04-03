@@ -18,6 +18,15 @@ parquetpath = 's3n://neal-dawson-elli-insight-data/models/b1'
 
 dirtyData = sc.read.parquet(parquetpath)
 
+redis_host = '10.0.0.7'
+redis_port = 6379
+redis_password = 'AhrIykRVjO9GHA52kmYou7iUrsDbzJL+/7vjeTYhsLmpskyAY8tnucf4QJ7FpvVzFNNKuIZVVkh1LRxF'
+
+
+#global r
+#r = redis.Redis(host=redis_host, port=redis_port, password=redis_password)
+
+
 #dirtyData.write.format("org.apache.spark.sql.redis").option("table","id").save()
 
 #dirtyData = sc.read.csv("s3n://neal-dawson-elli-insight-data/insight/final2/questions/201703-000000000000*.csv.gz", header=True, multiLine=True, escape='"')
@@ -74,10 +83,12 @@ def store_redis(row):
     #except:
     #    acc=""
     
-    embed = str(row['features'])
-    r.set(idd, title+','+embed)
+    embed = row['features']
+    to_write = "|".join([str(embed.size), str(list(embed.indices)),str(list(embed.values))])
+    r.set('id:'+idd, title+'|'+to_write)
     #tags = row['tags']
     for tag in tags:
+#        r.append(tag, ","+idd)
         curr = r.get(tag)
         if curr is None:
             r.set(tag, idd)
