@@ -71,7 +71,12 @@ def get_features(key):
     redis_host = '10.0.0.7'
     redis_port = 6379
     redis_password = 'AhrIykRVjO9GHA52kmYou7iUrsDbzJL+/7vjeTYhsLmpskyAY8tnucf4QJ7FpvVzFNNKuIZVVkh1LRxF'
-    r = redis.Redis(host=redis_host, port=redis_port, password=redis_password)
+    
+    try:
+        r = redis.Redis(host=redis_host, port=redis_port, password=redis_password)
+    except ConnectionError:
+        print('failed to connect')
+        return None
     #print('key', key)
     read = r.get(key).split('|')
 #    print(read[0], read[1])
@@ -90,17 +95,29 @@ def get_features(key):
 
 get_features_udf = udf(lambda r: get_features(r), VectorUDT())
 
-def retrieve_keys(data_list):
+def retrieve_keys(tags):
     redis_host = '10.0.0.7'
     redis_port = 6379
     redis_password = 'AhrIykRVjO9GHA52kmYou7iUrsDbzJL+/7vjeTYhsLmpskyAY8tnucf4QJ7FpvVzFNNKuIZVVkh1LRxF'
     r = redis.Redis(host=redis_host, port=redis_port, password=redis_password)
     # if tags exist, filter them (later)
-    available_keys = r.keys('id:35*')
-    #data = []
+    print(tags)
+    if tags == []:
+        available_keys = r.keys('id:32*')
+    else:
+        print('FILTERING')
+        a_keys = [r.get(tag).split(',') for tag in tags]
+        available_keys = set([])
+        for keys_list in a_keys:
+             for key in keys_list:
+                 available_keys.add(key)
+    # eventually wont need
+    available_keys = ["id:"+key for key in available_keys]
+    return available_keys
+#data = []
     #for key in available_keys:
     #    data.append((r.get(key).split('|')))
-    return available_keys
+    #return available_keys
     #print(available_keys)
     #return available_keys
 
@@ -109,7 +126,7 @@ def retrieve_keys(data_list):
 def handler(message):
     records = message.collect()
     list_collect = []
-    for r in records[:2]:
+    for r in records:
         #print(r[1])
         read = json.loads(r[1].decode('utf-8'))
         list_collect.append((read['text'],read['tags']))
@@ -118,14 +135,16 @@ def handler(message):
     #print(list_collect)
         data = spark.createDataFrame([l1],['cleaned_body','tags'])
         data = model.transform(data)
-        d = data.select('features').collect()
-        keys = retrieve_keys(data)
+        d = data.select('features','tags').collect()
+        print(d)
+        keys = retrieve_keys(d[0]['tags'])
         keys = spark.createDataFrame(keys, StringType())
         keys = keys.withColumn('features',get_features_udf(keys['value']))
-        cos_udf = udf(lambda r: cos(r, d[0][0]), FloatType())
+        cos_udf = udf(lambda r: cos(r, d[0]['features']), FloatType())
         keys = keys.withColumn('similarity', cos_udf(keys['features'])).sort('similarity', ascending=False)
-        keys.show(10)
+        #keys.show(10)
         top_result = keys.take(5)
+        print(top_result)
         report_to_redis(top_result, job)
         
         #print(d)
@@ -135,5 +154,5 @@ def handler(message):
 
 kafkaStream.foreachRDD(handler)
 ssc.start()
-ssc.awaitTermination(timeout=500)
+ssc.awaitTermination(timeout=None)
 #print(collected)

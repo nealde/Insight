@@ -9,7 +9,7 @@ from pyspark.sql.types import StringType
 
 sc = SparkSession.builder.appName("Text Pipeline All Data").getOrCreate()
 
-dirtyData = sc.read.csv("s3n://neal-dawson-elli-insight-data/insight/final2/questions/201703-00000000000*.csv.gz", header=True, multiLine=True, escape='"')
+dirtyData = sc.read.csv("s3n://neal-dawson-elli-insight-data/insight/final2/questions/201903-0000000000*.csv.gz", header=True, multiLine=True, escape='"')
 
 dirtyData = dirtyData.select('id','title','body','tags','accepted_answer_id')
 
@@ -59,8 +59,8 @@ pipeline = Pipeline(stages=[tokenizer, hashingTF, idf])
 # Fit the pipeline to training documents.
 model = pipeline.fit(dirtyData)
 
-idfpath = 's3n://neal-dawson-elli-insight-data/models/idf-model'
-parquetpath = 's3n://neal-dawson-elli-insight-data/models/b1'
+idfpath = 's3n://neal-dawson-elli-insight-data/models/idf-model2'
+parquetpath = 's3n://neal-dawson-elli-insight-data/models/b2'
 
 model.write().overwrite().save(idfpath)
 #dirtyData = model.transform(dirtyData)
@@ -101,8 +101,8 @@ model.write().overwrite().save(idfpath)
 # tf.cache()
 
 #rescaledData.select("_c0", "features").show() 
-
-#rescaledData.write.parquet(parquetpath)
+rescaledData = model.transform(dirtyData)
+rescaledData.select('id','title','features').write.parquet(parquetpath)
 
 #sample = rescaledData.select('_c0','features').take(2)[1]['features']
 
