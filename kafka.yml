@@ -1,10 +1,10 @@
 purchase_type: on_demand
 subnet_id: subnet-0e85642a831360a4c
-num_instances: 5
+num_instances: 1
 key_name: neal-iam-keypair
 security_group_ids: sg-02f38fca21da3defb
 instance_type: m4.large
-tag_name: cloudcompare
+tag_name: kafka
 vol_size: 100
-role: worker
+role: master
 use_eips: true

@@ -1,3 +1,4 @@
+*.redispw
 */spark-warehouse/*
 *.csv
 *.gz

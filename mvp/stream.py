@@ -1,17 +1,4 @@
-#import kafka
-
-# connect to kafka cluster
-#cluster= kafka.KafkaClient("10.0.0.7:9092")
-#topic="cloud"
-#consumer_group = 'default_group'
-#consumer = kafka.SimpleConsumer(cluster, consumer_group, topic)
-
-# consume all messages
-#for raw in consumer:
-#    msg = raw.message.value
-#    print(msg)
 import os
-#os.environ['PYSPARK_SUBMIT_ARGS'] = '--packages org.apache.spark/spark-streaming-kafka-0-10_2.11:2.3.1 pyspark-shell'
 os.environ['PYSPARK_SUBMIT_ARGS'] = '--packages org.apache.spark:spark-streaming-kafka-0-8_2.11:2.2.0 pyspark-shell'
 import json
 
@@ -24,7 +11,11 @@ from pyspark import SparkContext
 #    Spark Streaming
 from pyspark.streaming import StreamingContext
 from pyspark.streaming.kafka import KafkaUtils
-
+import redis
+# redis_host = '10.0.0.7'
+# redis_port = 6379
+# redis_password = 'AhrIykRVjO9GHA52kmYou7iUrsDbzJL+/7vjeTYhsLmpskyAY8tnucf4QJ7FpvVzFNNKuIZVVkh1LRxF'
+# r = redis.Redis(host=redis_host, port=redis_port, password=redis_password)
 
 idfpath = 's3n://neal-dawson-elli-insight-data/models/idf-model'
 #model = PipelineModel.load(idfpath)
@@ -47,8 +38,22 @@ kafkaStream = KafkaUtils.createDirectStream(
     {'metadata.broker.list':'10.0.0.11:9092'}
 )
 
+def str_to_sparse(str):
+    from scipy import sparse
+
+
 #collected = kafkaStream.collect()
 #kafkaStream.foreachRDD(handler)
+def retrieve_results(data_list, r):
+    redis_host = '10.0.0.7'
+    redis_port = 6379
+    redis_password = 'AhrIykRVjO9GHA52kmYou7iUrsDbzJL+/7vjeTYhsLmpskyAY8tnucf4QJ7FpvVzFNNKuIZVVkh1LRxF'
+    r = redis.Redis(host=redis_host, port=redis_port, password=redis_password)
+    # if tags exist, filter them (later)
+    available_keys = r.keys('id*')
+    print(available_keys[:10])
+    return available_keys
+
 def handler(message):
     records = message.collect()
     list_collect = []
@@ -61,7 +66,8 @@ def handler(message):
         data = spark.createDataFrame(l1,['cleaned_body','tags'])
         data = model.transform(data)
         d = data.select('features').collect()
-        print(d)
+        retrieve_results(d, r)
+        # print(d)
     #print(read)
     #print(records)
     return
