@@ -16,7 +16,7 @@ os.environ['PYSPARK_SUBMIT_ARGS'] = '--packages org.apache.spark:spark-streaming
 import json
 
 from pyspark.sql.functions import udf
-from pyspark.sql.types import StringType, DataType
+from pyspark.sql.types import StringType, DataType, FloatType
 from pyspark.sql import SparkSession
 from pyspark.ml import Pipeline, Transformer, PipelineModel
 from pyspark.ml.linalg import SparseVector, VectorUDT
@@ -39,7 +39,7 @@ sc = spark.sparkContext
 #sc = SparkContext(appName="streaming")
 sc.setLogLevel("WARN")
 
-#model = PipelineModel.load(idfpath)
+model = PipelineModel.load(idfpath)
 ssc = StreamingContext(sc, 1)
 
 #kafkaStream = KafkaUtils.createStream(ssc, 'cdh57-01-node-01.moffatt.me:2181', 'spark-streaming', {'twitter':1})
@@ -48,6 +48,16 @@ kafkaStream = KafkaUtils.createDirectStream(
     ['cloud'],
     {'metadata.broker.list':'10.0.0.11:9092'}
 )
+
+
+def cos(a,b):
+    if a is None:
+        return 0.0
+    return float(a.dot(b)/(a.norm(2)*b.norm(2)))
+
+#cos_udf(b) = udf(lambda x: cos(x, b), FloatType())
+
+
 def get_features(key):
     import numpy as np
     redis_host = '10.0.0.7'
@@ -98,11 +108,13 @@ def handler(message):
         l1 = (read['text'],read['tags'])
     #print(list_collect)
         data = spark.createDataFrame([l1],['cleaned_body','tags'])
-#        data = model.transform(data)
-#        d = data.select('features').collect()
+        data = model.transform(data)
+        d = data.select('features').collect()
         keys = retrieve_keys(data)
         keys = spark.createDataFrame(keys, StringType())
         keys = keys.withColumn('features',get_features_udf(keys['value']))
+        cos_udf = udf(lambda r: cos(r, d[0][0]), FloatType())
+        keys = keys.withColumn('similarity', cos_udf(keys['features'])).sort('similarity', ascending=False)
         keys.show(10)
         
         #print(d)
