@@ -56,6 +56,14 @@ def cos(a,b):
     return float(a.dot(b)/(a.norm(2)*b.norm(2)))
 
 #cos_udf(b) = udf(lambda x: cos(x, b), FloatType())
+def report_to_redis(results, job):
+    redis_host = '10.0.0.7'
+    redis_port = 6379
+    redis_password = 'AhrIykRVjO9GHA52kmYou7iUrsDbzJL+/7vjeTYhsLmpskyAY8tnucf4QJ7FpvVzFNNKuIZVVkh1LRxF'
+    r = redis.Redis(host=redis_host, port=redis_port, password=redis_password)
+    for i, res in enumerate(results):
+        r.set('success:'+str(job)+'|'+str(i), res['value']+'|{:f}'.format(res['similarity']))
+    return 
 
 
 def get_features(key):
@@ -88,7 +96,7 @@ def retrieve_keys(data_list):
     redis_password = 'AhrIykRVjO9GHA52kmYou7iUrsDbzJL+/7vjeTYhsLmpskyAY8tnucf4QJ7FpvVzFNNKuIZVVkh1LRxF'
     r = redis.Redis(host=redis_host, port=redis_port, password=redis_password)
     # if tags exist, filter them (later)
-    available_keys = r.keys('id:12*')
+    available_keys = r.keys('id:35*')
     #data = []
     #for key in available_keys:
     #    data.append((r.get(key).split('|')))
@@ -106,6 +114,7 @@ def handler(message):
         read = json.loads(r[1].decode('utf-8'))
         list_collect.append((read['text'],read['tags']))
         l1 = (read['text'],read['tags'])
+        job = read['index']
     #print(list_collect)
         data = spark.createDataFrame([l1],['cleaned_body','tags'])
         data = model.transform(data)
@@ -116,6 +125,8 @@ def handler(message):
         cos_udf = udf(lambda r: cos(r, d[0][0]), FloatType())
         keys = keys.withColumn('similarity', cos_udf(keys['features'])).sort('similarity', ascending=False)
         keys.show(10)
+        top_result = keys.take(5)
+        report_to_redis(top_result, job)
         
         #print(d)
     #print(read)
