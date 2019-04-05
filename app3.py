@@ -52,21 +52,21 @@ html.Div(['Test output will be reported here'], id='output-test'),
     [Input('button', 'n_clicks')],
     [State('input_text', 'value')])
 def update_output(n_clicks, value):
-    redis_host = '10.0.0.7'
-    redis_port = 6379
-    redis_password = 'AhrIykRVjO9GHA52kmYou7iUrsDbzJL+/7vjeTYhsLmpskyAY8tnucf4QJ7FpvVzFNNKuIZVVkh1LRxF'
+#    redis_host = '10.0.0.7'
+#    redis_port = 6379
+#    redis_password = 'AhrIykRVjO9GHA52kmYou7iUrsDbzJL+/7vjeTYhsLmpskyAY8tnucf4QJ7FpvVzFNNKuIZVVkh1LRxF'
 
-    r = redis.Redis(host=redis_host, port=redis_port, password=redis_password)
-    if value != "":
-        st = time.time()
-        response = r.get(value)
+#    r = redis.Redis(host=redis_host, port=redis_port, password=redis_password)
+#    if value != "":
+#        st = time.time()
+#        response = r.get(value)
      #print(response)
-        return'The response is "{}" characters long and the button has been clicked {} times.  It took {} seconds to get this data.'.format(
-        len(response),
-        n_clicks, time.time()-st
-        )
-    else:
-        return ""
+ #       return'The response is "{}" characters long and the button has been clicked {} times.  It took {} seconds to get this data.'.format(
+ #       len(response),
+ #       n_clicks, time.time()-st
+ #       )
+ #   else:
+    return ""
 
 
 #@app.callback(Output('output-container-button','children'),
