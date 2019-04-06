@@ -57,10 +57,10 @@ def cos(a,b):
 
 #cos_udf(b) = udf(lambda x: cos(x, b), FloatType())
 def report_to_redis(results, job):
-    redis_host = '10.0.0.7'
+    redis_host = '10.0.0.10'
     redis_port = 6379
-    redis_password = 'AhrIykRVjO9GHA52kmYou7iUrsDbzJL+/7vjeTYhsLmpskyAY8tnucf4QJ7FpvVzFNNKuIZVVkh1LRxF'
-    r = redis.Redis(host=redis_host, port=redis_port, password=redis_password)
+    #redis_password = 'AhrIykRVjO9GHA52kmYou7iUrsDbzJL+/7vjeTYhsLmpskyAY8tnucf4QJ7FpvVzFNNKuIZVVkh1LRxF'
+    r = redis.Redis(host=redis_host, port=redis_port) #, password=redis_password)
     for i, res in enumerate(results):
         r.set('success:'+str(job)+'|'+str(i), res['value']+'|{:f}'.format(res['similarity']))
     return 
@@ -68,12 +68,12 @@ def report_to_redis(results, job):
 
 def get_features(key):
     import numpy as np
-    redis_host = '10.0.0.7'
+    redis_host = '10.0.0.10'
     redis_port = 6379
-    redis_password = 'AhrIykRVjO9GHA52kmYou7iUrsDbzJL+/7vjeTYhsLmpskyAY8tnucf4QJ7FpvVzFNNKuIZVVkh1LRxF'
+    #redis_password = 'AhrIykRVjO9GHA52kmYou7iUrsDbzJL+/7vjeTYhsLmpskyAY8tnucf4QJ7FpvVzFNNKuIZVVkh1LRxF'
     
     try:
-        r = redis.Redis(host=redis_host, port=redis_port, password=redis_password)
+        r = redis.Redis(host=redis_host, port=redis_port) #, password=redis_password)
     except ConnectionError:
         print('failed to connect')
         return None
@@ -96,10 +96,10 @@ def get_features(key):
 get_features_udf = udf(lambda r: get_features(r), VectorUDT())
 
 def retrieve_keys(tags):
-    redis_host = '10.0.0.7'
+    redis_host = '10.0.0.10'
     redis_port = 6379
-    redis_password = 'AhrIykRVjO9GHA52kmYou7iUrsDbzJL+/7vjeTYhsLmpskyAY8tnucf4QJ7FpvVzFNNKuIZVVkh1LRxF'
-    r = redis.Redis(host=redis_host, port=redis_port, password=redis_password)
+    #redis_password = 'AhrIykRVjO9GHA52kmYou7iUrsDbzJL+/7vjeTYhsLmpskyAY8tnucf4QJ7FpvVzFNNKuIZVVkh1LRxF'
+    r = redis.Redis(host=redis_host, port=redis_port) #, password=redis_password)
     # if tags exist, filter them (later)
     print(tags)
     if tags == []:

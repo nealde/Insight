@@ -8,8 +8,8 @@ from pyspark.sql.types import StringType
 #from pyspark.mllib.linalg.distributed import IndexedRow, IndexedRowMatrix 
 
 sc = SparkSession.builder.appName("Text Pipeline All Data").getOrCreate()
-
-dirtyData = sc.read.csv("s3n://neal-dawson-elli-insight-data/insight/final3/questions/questions-0000000000*.csv", header=True, multiLine=True, escape='"')
+#sqlContext.sql("set spark.sql.shuffle.partitions=10");
+dirtyData = sc.read.csv("s3n://neal-dawson-elli-insight-data/insight/final3/questions/questions-0000000000*.csv", header=True, multiLine=True, escape='"').repartition(400)
 
 dirtyData2 = dirtyData.select('id','title','body','tags')
 dirtyData = None
@@ -48,7 +48,7 @@ dirtyData2 = None
 
 parquetpath = 's3n://neal-dawson-elli-insight-data/models/b3'
 
-dirtyData3.select('id','cleaned_body','tags').write.parquet(parquetpath)
+#dirtyData3.select('id','cleaned_body','tags').write.parquet(parquetpath)
 #dirtyData.cache()
 #dirtyData = dirtyData.select('id','title','cleaned_body','tags','accepted_answer_id')
 #dirtyData.select('cleaned_body').show()
@@ -57,7 +57,7 @@ dirtyData3.select('id','cleaned_body','tags').write.parquet(parquetpath)
 #dirtyData = cleaner.transform(dirtyData)
 
 tokenizer = Tokenizer(inputCol="cleaned_body", outputCol="words")
-hashingTF = HashingTF(inputCol="words", outputCol="rawFeatures", numFeatures=2**12)
+hashingTF = HashingTF(inputCol="words", outputCol="rawFeatures", numFeatures=2**20)
 idf = IDF(inputCol="rawFeatures", outputCol="features")
 pipeline = Pipeline(stages=[tokenizer, hashingTF, idf])
 

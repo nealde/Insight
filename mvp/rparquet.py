@@ -1,27 +1,46 @@
+
+
 from pyspark.sql import SparkSession, DataFrame
 from pyspark.ml import Pipeline, Transformer, PipelineModel
 from pyspark.ml.feature import HashingTF, IDF, IDFModel, Tokenizer
 from pyspark.sql.functions import udf
 from pyspark.sql.types import StringType
 import redis
-
-
+from numba import jit
 
 #from pyspark.ml.feature import Normalizer 
 #from pyspark.mllib.linalg.distributed import IndexedRow, IndexedRowMatrix 
-redis_password = 'AhrIykRVjO9GHA52kmYou7iUrsDbzJL+/7vjeTYhsLmpskyAY8tnucf4QJ7FpvVzFNNKuIZVVkh1LRxF'
+#redis_password = 'AhrIykRVjO9GHA52kmYou7iUrsDbzJL+/7vjeTYhsLmpskyAY8tnucf4QJ7FpvVzFNNKuIZVVkh1LRxF'
 
 sc =  SparkSession.builder.appName("Parquet to Redis").getOrCreate()
 #sc = SparkSession.builder.appName("Parquet to Redis").config("spark.redis.host","10.0.0.7").config("spark.redis.port","6379").config("spark.redis.password",redis_password).getOrCreate()
 
-parquetpath = 's3n://neal-dawson-elli-insight-data/models/b1'
+parquetpath = 's3n://neal-dawson-elli-insight-data/models/b4'
 
-dirtyData = sc.read.parquet(parquetpath)
+#dirtyData = sc.read.parquet(parquetpath)
 
-redis_host = '10.0.0.7'
-redis_port = 6379
-redis_password = 'AhrIykRVjO9GHA52kmYou7iUrsDbzJL+/7vjeTYhsLmpskyAY8tnucf4QJ7FpvVzFNNKuIZVVkh1LRxF'
+#redis_host = '10.0.0.7'
+#redis_port = 6379
+#redis_password = 'AhrIykRVjO9GHA52kmYou7iUrsDbzJL+/7vjeTYhsLmpskyAY8tnucf4QJ7FpvVzFNNKuIZVVkh1LRxF'
+import os
 
+from redis import Redis
+
+global redis_host, redis_port
+redis_host='10.0.0.10'
+redis_port='6379'
+
+_connection = None
+
+def connection():
+    """Return the Redis connection to the URL given by the environment
+    variable REDIS_URL, creating it if necessary.#
+
+    """
+    global _connection
+    if _connection is None:
+        _connection = Redis(host=redis_host, port=redis_port)
+    return _connection
 
 #global r
 #r = redis.Redis(host=redis_host, port=redis_port, password=redis_password)
@@ -55,16 +74,19 @@ redis_password = 'AhrIykRVjO9GHA52kmYou7iUrsDbzJL+/7vjeTYhsLmpskyAY8tnucf4QJ7Fpv
     #         df = df.drop(*[x for x in df.columns if any(y in x for y in self.banned_list)])
 #        return df
 
-def clean(line):
-    line = line.lower().replace("\n"," ").replace("\r","").replace(',',"").replace(">","> ").replace("<", " <")
-    return line
-clean_udf = udf(lambda r: clean(r), StringType())
+#def clean(line):
+#    line = line.lower().replace("\n"," ").replace("\r","").replace(',',"").replace(">","> ").replace("<", " <")
+#    return line
+#clean_udf = udf(lambda r: clean(r), StringType())
+
+#def assemble(tag, 
 
 def store_redis(row):
-    redis_host = '10.0.0.7'
-    redis_port = 6379
-    redis_password = 'AhrIykRVjO9GHA52kmYou7iUrsDbzJL+/7vjeTYhsLmpskyAY8tnucf4QJ7FpvVzFNNKuIZVVkh1LRxF'
-    r = redis.Redis(host=redis_host, port=redis_port, password=redis_password)
+    #redis_host = '10.0.0.7'
+    #redis_port = 6379
+    #redis_password = 'AhrIykRVjO9GHA52kmYou7iUrsDbzJL+/7vjeTYhsLmpskyAY8tnucf4QJ7FpvVzFNNKuIZVVkh1LRxF'
+    r = connection()
+#    r = redis.Redis(host=redis_host, port=redis_port) #, password=redis_password)
 #    print(row)
     try:
 	tags = row['tags']
@@ -72,12 +94,12 @@ def store_redis(row):
             tags = tags.split('|')
     except:
         print(tags)
-	return row
+	return 0
     idd = row['id']
     title = row['title']
     
     #body = row['cleaned_body']
-    #creation = row['creation_date']
+    creation = row['creation_date']
     #try:
     #    acc = row['accepted_answer_id'][:-2]
     #except:
@@ -85,15 +107,19 @@ def store_redis(row):
     
     embed = row['features']
     to_write = "|".join([str(embed.size), str(list(embed.indices)),str(list(embed.values))])
-    r.set('id:'+idd, title+'|'+to_write)
+    r.set('id:'+idd, title+'|'+to_write+'|'+creation)
     #tags = row['tags']
     for tag in tags:
-#        r.append(tag, ","+idd)
-        curr = r.get(tag)
-        if curr is None:
-            r.set(tag, idd)
-        else:
-            r.set(tag, curr+","+idd)
+#        t = r.get(tag)
+#        if t is not None:
+        r.append(tag, ",id:"+idd)
+#        else:
+#            r.append(tag, "id:"+idd)
+#        curr = r.get(tag)
+#        if curr is None:
+#            r.set(tag, idd)
+#        else:
+#            r.set(tag, curr+","+idd)
 #            print(tag)
 #    for tag in tags:
 #        try:
@@ -107,11 +133,11 @@ def store_redis(row):
 #        except:
 #            print(tag, curr, idd)
     #r.set(idd, str(
-    return row
+    return 1
 
 #redis_udf = udf(lambda row: store_redis(row), StringType)
-
-dd = dirtyData.rdd.map(lambda row: store_redis(row)).count()
+#sc.read.parquet(parquetpath).show(20)
+dd = sc.read.parquet(parquetpath).rdd.map(store_redis).sum()
 print(dd)
 
 #print(dd)
