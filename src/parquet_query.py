@@ -11,8 +11,8 @@ import zlib
 #from numba import jit
 #from functools import lru_cache
 
-#from pyspark.ml.feature import Normalizer 
-#from pyspark.mllib.linalg.distributed import IndexedRow, IndexedRowMatrix 
+#from pyspark.ml.feature import Normalizer
+#from pyspark.mllib.linalg.distributed import IndexedRow, IndexedRowMatrix
 #redis_password = 'AhrIykRVjO9GHA52kmYou7iUrsDbzJL+/7vjeTYhsLmpskyAY8tnucf4QJ7FpvVzFNNKuIZVVkh1LRxF'
 
 sc =  SparkSession.builder.appName("Parquet to Redis").getOrCreate()
@@ -22,11 +22,11 @@ sc =  SparkSession.builder.appName("Parquet to Redis").getOrCreate()
 
 parquetpath = 's3n://neal-dawson-elli-insight-data/models/b5'
 
-from redis import StrictRedis
-
-global redis_host, redis_port
-redis_host='10.0.0.10'
-redis_port='6379'
+# from redis import StrictRedis
+#
+# global redis_host, redis_port
+# redis_host='10.0.0.10'
+# redis_port='6379'
 
 _connection = None
 
@@ -121,19 +121,19 @@ def store_redis(row):
 #    if len(idd) < 8:
 #        idd = '0'+idd
     title = row['title']
-    
+
     #body = row['cleaned_body']
 #    creation = row['creation_date']
     #try:
     #    acc = row['accepted_answer_id'][:-2]
     #except:
     #    acc=""
-    
+
     embed = row['features']
 #    to_write = assemble(embed.size, embed.indices, embed.values, title, creation)
 #    to_write = "|".join([str(embed.size), str(list(embed.indices)),str(list(embed.values))])
 #    try:
-#        to_write = 
+#        to_write =
     end_idd = idd[-1:]
     front_idd = idd[:-1]
 
@@ -170,7 +170,7 @@ def store_redis(row):
 #    r.hset('id:'+idd[:-2],idd[-2:],gzip.compress(to_write.encode()))
     #r.set('id:'+idd, to_write)
     #tags = row['tags']
-#    
+#
     for tag in tags:
 #        t = r.get(tag)
 #        if t is not None:
@@ -276,7 +276,7 @@ dd = dd.withColumn('tw',redis_udf(struct([dd[x] for x in dd.columns]))).select('
 # tf = hashingTF.transform(words)
 # tf.cache()
 
-#rescaledData.select("_c0", "features").show() 
+#rescaledData.select("_c0", "features").show()
 
 #rescaledData.write.parquet(parquetpath)
 
@@ -294,9 +294,9 @@ dd = dd.withColumn('tw',redis_udf(struct([dd[x] for x in dd.columns]))).select('
 #for idx, val in topFive:
 #    print("doc '%s' has score %.4f" % (idx, val))
 
-#normalizer = Normalizer(inputCol="features", outputCol="norm") 
+#normalizer = Normalizer(inputCol="features", outputCol="norm")
 #data = normalizer.transform(rescaledData)
 
-#mat = IndexedRowMatrix(data.select("_c0", "norm").rdd.map(lambda row: IndexedRow(row._c0, row.norm.toArray()))).toBlockMatrix() 
+#mat = IndexedRowMatrix(data.select("_c0", "norm").rdd.map(lambda row: IndexedRow(row._c0, row.norm.toArray()))).toBlockMatrix()
 #dot = mat.multiply(mat.transpose())
 #dot.toLocalMatrix().toArray()
