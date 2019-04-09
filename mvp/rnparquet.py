@@ -1,11 +1,12 @@
-
-
-
 from pyspark.sql import SparkSession, DataFrame
 from pyspark.ml import Pipeline, Transformer, PipelineModel
 from pyspark.ml.feature import HashingTF, IDF, IDFModel, Tokenizer
 from pyspark.sql.functions import udf, struct
 from pyspark.sql.types import StringType
+import numpy as np
+import zlib
+#from __future__ import gzip
+
 #import redis
 #from numba import jit
 #from functools import lru_cache
@@ -16,8 +17,10 @@ from pyspark.sql.types import StringType
 
 sc =  SparkSession.builder.appName("Parquet to Redis").getOrCreate()
 #sc = SparkSession.builder.appName("Parquet to Redis").config("spark.redis.host","10.0.0.7").config("spark.redis.port","6379").config("spark.redis.password",redis_password).getOrCreate()
+#print(sc.sparkContext.defaultParalleism)
+#sc.sparkContext.defaultParallelism = 400
 
-parquetpath = 's3n://neal-dawson-elli-insight-data/models/b3'
+parquetpath = 's3n://neal-dawson-elli-insight-data/models/b5'
 
 from redis import StrictRedis
 
@@ -37,6 +40,7 @@ _connection = None
 #    """
 #    return StrictRedis.from_url('10.0.0.10:6379')
 
+# this works, keep it
 def connection():
     """Return the Redis connection to the URL given by the environment
     variable REDIS_URL, creating it if necessary.
@@ -93,8 +97,9 @@ def connection():
 #    return line
 #clean_udf = udf(lambda r: clean(r), StringType())
 
-def assemble(size, ind, val, title, creation):
-    return '|'.join([title,'|'.join([str(size),str(list(ind)),str(list(val))]),creation])
+#def assemble(size, ind, val, title, creation):
+#    return '|'.join([title,'|'.join([str(size),str(list(ind)),str(["%2.4f"%v for v in val])]),creation])
+#    return '|'.join([title,'|'.join([str(size),str(list(ind)),str(list(val))]),creation])
 
 
 def store_redis(row):
@@ -113,24 +118,65 @@ def store_redis(row):
 #        print(tags)
 #	return 0
     idd = row['id']
+#    if len(idd) < 8:
+#        idd = '0'+idd
     title = row['title']
     
     #body = row['cleaned_body']
-    creation = row['creation_date']
+#    creation = row['creation_date']
     #try:
     #    acc = row['accepted_answer_id'][:-2]
     #except:
     #    acc=""
     
     embed = row['features']
-    to_write = assemble(embed.size, embed.indices, embed.values, title, creation)
+#    to_write = assemble(embed.size, embed.indices, embed.values, title, creation)
 #    to_write = "|".join([str(embed.size), str(list(embed.indices)),str(list(embed.values))])
-#    r.set('id:'+idd, to_write)
+#    try:
+#        to_write = 
+    end_idd = idd[-1:]
+    front_idd = idd[:-1]
+
+#    inds = embed.indices
+#    vals = embed.values
+    inds = zlib.compress(embed.indices.tobytes())
+    vals = zlib.compress(embed.values.astype('float16').tobytes())
+#    inds = [end_idd+':v'+str(i) for i in embed.indices]
+#    vals = ['%2.4f' % v for v in embed.values]
+    # add size
+#    inds.append(end_idd+':s')
+#    vals.append(str(embed.size))
+    # add title
+#    inds.append(end_idd+':t')
+#    vals.append(title)
+    # add creation_date
+#    inds.append(end_idd+':c')
+#    vals.append(creation)
+
+    #info_dict = dict(zip(inds, vals))
+
+#    r.hmset('id:'+idd, info_dict)
+    #[r.hset('v:id:'+idd, str(inds[i]), "%2.4f"%vals[i]) for i in range(len(vals))]
+    r.hset('id:'+front_idd,end_idd+':t',title)
+    r.hset('id:'+front_idd,end_idd+':s',str(embed.size))
+    r.hset('id:'+front_idd,end_idd+':i',inds)
+    r.hset('id:'+front_idd,end_idd+':v',vals)
+
+
+#    r.hset('id:'+idd[:-2],idd[-2:]+':i',str(embed.indices))
+#    r.hset('id:'+idd[:-2],idd[-2:]+':v',str(["%2.4f" % v for v in embed.values]))
+#    r.hset('id:'+front_idd,end_idd+':c',creation)
+
+#    r.hset('id:'+idd[:-2],idd[-2:],gzip.compress(to_write.encode()))
+    #r.set('id:'+idd, to_write)
     #tags = row['tags']
 #    
     for tag in tags:
 #        t = r.get(tag)
 #        if t is not None:
+         # eventually look to replace this with a hashmap.
+#          r.hset(object, field, value)
+#         r.hset(tag+':'+idd[:2],idd[2:],1)
          r.append(tag, ",id:"+idd)
 #        else:
  #           r.append(tag, "id:"+idd)
@@ -152,14 +198,16 @@ def store_redis(row):
 #        except:
 #            print(tag, curr, idd)
     #r.set(idd, str(
-    return to_write
+    return 1
+#    return to_write
 
 redis_udf = udf(lambda row: store_redis(row), StringType())
 #sc.read.parquet(parquetpath).show(20)
-dd = sc.read.parquet(parquetpath)
+dd = sc.read.parquet(parquetpath).repartition(700)
 #dd = dd.select('id','features','title','creation_date')
 dd = dd.withColumn('tw',redis_udf(struct([dd[x] for x in dd.columns]))).select('id','tw')\
-.write.format("org.apache.spark.sql.redis").option("table", "id").option("key.column", "id").save()
+.select('tw').collect()
+#.write.format("org.apache.spark.sql.redis").option("table", "id").option("key.column", "id").save()
 
 
 #dd = sc.read.parquet(parquetpath).rdd.map(store_redis).sum()

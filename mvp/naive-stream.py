@@ -30,6 +30,7 @@ import zlib
 import json
 #from rdistrib import *
 
+parquetpath = 's3n://neal-dawson-elli-insight-data/models/b5'
 idfpath = 's3n://neal-dawson-elli-insight-data/models/idf-model3'
 #model = PipelineModel.load(idfpath)
 spark = SparkSession\
@@ -43,6 +44,7 @@ sc.setLogLevel("WARN")
 
 
 _connection = None
+#global _connection
 
 def connection():
     """Return the Redis connection to the URL given by the environment
@@ -76,30 +78,35 @@ def report_to_redis(results, job):
     #redis_port = 6379
     #redis_password = 'AhrIykRVjO9GHA52kmYou7iUrsDbzJL+/7vjeTYhsLmpskyAY8tnucf4QJ7FpvVzFNNKuIZVVkh1LRxF'
     #r = connection()
-    print(results)
     r = StrictRedis.from_url("redis://10.0.0.10:6379") #, password=redis_password)
     for i, res in enumerate(results):
         r.set('success:'+str(job)+'|'+str(i), res['value']+'|%1.3f'%res['similarity'])
-    return 0
+    return 
 
 
 def get_features(key):
-    r = connection()
-
-
+#    import numpy as np
+    #redis_host = '10.0.0.10'
+    #redis_port = 6379
+    #redis_password = 'AhrIykRVjO9GHA52kmYou7iUrsDbzJL+/7vjeTYhsLmpskyAY8tnucf4QJ7FpvVzFNNKuIZVVkh1LRxF'
+    connection()
+    r = _connection
+#    r = connection()
+    #try:
+#    r = StrictRedis.from_url("redis://10.0.0.10:6379") #, password=redis_password)
     #except ConnectionError:
     #    print('failed to connect')
     #    return None
     #print('key', key)
     #print(key)
-    key_front = key[:-1]
-    key_back = key[-1:]
+    key_front = key[:-2]
+    key_back = key[-2:]
     #print(key_front, key_back)
     #title = r.hget(key_front, key_back+':t')
     size = r.hget(key_front, key_back+':s')
 #    print(size)
     inds = np.frombuffer(zlib.decompress(r.hget(key_front, key_back+':i')),dtype=np.int32)
-    vals = np.frombuffer(zlib.decompress(r.hget(key_front, key_back+':v')),dtype=np.float16)
+    vals = np.frombuffer(zlib.decompress(r.hget(key_front, key_back+':v')),dtype=np.float32)
 #    return "15"
     #return str(size)
 #    print(inds, vals)
@@ -129,27 +136,21 @@ def retrieve_keys(tags):
     #redis_host = '10.0.0.10'
     #redis_port = 6379
     #redis_password = 'AhrIykRVjO9GHA52kmYou7iUrsDbzJL+/7vjeTYhsLmpskyAY8tnucf4QJ7FpvVzFNNKuIZVVkh1LRxF'
- #   r = connection()
-    r = StrictRedis.from_url('redis://10.0.0.10:6379') #, password=redis_password)
+    r = connection()
+    #r = redis.Redis(host=redis_host, port=redis_port) #, password=redis_password)
     # if tags exist, filter them (later)
     print(tags)
     if tags == []:
-        return []
-#        available_keys = r.keys('id:*') # this is no longer safe
+        available_keys = r.keys('id:*') # this is no longer safe
 #        for key in available_keys:
         
     else:
         print('FILTERING')
-#        a_keys = [r.get(tag).split(',')[1:] for tag in tags]
-        
+        a_keys = [r.get(tag).split(',')[1:] for tag in tags]
         available_keys = set([])
-        for tag in tags:
-             try:
-                 keys_list = r.get(tag).split(',')[1:]
-                 for key in keys_list:
-                     available_keys.add(key)
-             except:
-                 print('Tag %s not found - check spelling' % tag) 
+        for keys_list in a_keys:
+             for key in keys_list:
+                 available_keys.add(key)
     # eventually wont need
 #    available_keys = ["id:"+key for key in available_keys]
     return available_keys
@@ -159,6 +160,7 @@ def retrieve_keys(tags):
     #return available_keys
     #print(available_keys)
     #return available_keys
+dset = spark.read.parquet(parquetpath).repartition(700).cache()
 
 #collected = kafkaStream.collect()
 #kafkaStream.foreachRDD(handler)
@@ -175,16 +177,16 @@ def handler(message):
         data = spark.createDataFrame([l1],['cleaned_body','tags'])
         data = model.transform(data)
         d = data.select('features','tags').collect()
-        print(d)
-        keys = retrieve_keys(d[0]['tags'])
-        print(len(keys))
-        keys = spark.createDataFrame(keys, StringType())
-#        keys.show(20)
-        keys = keys.withColumn('features',get_features_udf(keys['value']))
+        #print(d)
+        #keys = retrieve_keys(d[0]['tags'])
+        #print(len(keys))
+        #keys = spark.createDataFrame(keys, StringType()).repartition(48)
+        #keys.show(20)
+        #keys = keys.withColumn('features',get_features_udf(keys['value']))
         
         cos_udf = udf(lambda r: cos(r, d[0]['features']), FloatType())
-        keys = keys.withColumn('similarity', cos_udf(keys['features'])).sort('similarity', ascending=False)
-        keys.show(10)
+        keys = dset.withColumn('similarity', cos_udf(dset['features'])).sort('similarity', ascending=False)
+#        keys.show(10)
         top_result = keys.take(5)
 #        print(top_result)
         report_to_redis(top_result, job)
