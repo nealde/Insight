@@ -1,4 +1,5 @@
-*.redispw
+
+*/metastore_db/*
 */spark-warehouse/*
 *.csv
 *.gz

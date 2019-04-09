@@ -9,11 +9,13 @@ Experts should be spending their time answering relevant questions and helping t
 
 ### Tech Stack:
 
-Datset: Google BigQuery Stack Overflow dataset of > 17M posts in compressed CSVs
-Data ingestion: Spark for batch processing or kafka for simulated streaming of questions for real-time processing.    
-Data storage: S3 for long-term storage, Redis or Arrow for intermediate storage   
-Processing: Implement distributed, pairwise cosine correlations in Spark using Python or Cython, as necessary.   
-Frontend: Dash or flask, to sample input questions and to return similar results if found.  
+Datset: Google BigQuery Stack Overflow dataset of > 17M posts in CSVs
+Data ingestion: Spark for batch processing and Kafka / Spark Streaming for simulated streaming of questions for real-time processing.    
+Data storage: S3 for long-term storage, Redis for preprocessed and intermediate data   
+Processing: Implement distributed, pairwise cosine correlations in Spark using Python or Cython, as necessary.
+Frontend: Dash, to sample input questions and to return similar results if found.  
+
+![tech_stack](/img/techStack.png)
 
 ### MVP:
 
@@ -22,10 +24,3 @@ The minimum viable product pulls in a corpus of cleaned text through a CSV in an
 ### Scoring
 
 How do we know if a post is a duplicate? By utilizing the post_link table, if link_type_id = 3, then the post_id is a duplicate.  Of the 17 million posts, 760,000 have been marked as duplicates.  While getting accurate results will be a sub-focus, the main focus will be on efficient, parallelizable implementation, reducing processing time, and scaling for real-time application.
-
-### Stretch:
-
-Stretch goals: 
-* implement more sophisticated similarity functions from [paper](https://www.site.uottawa.ca/~diana/publications/tkdd.pdf)
-* Autoscale based on jobs
-* Demonstrate 

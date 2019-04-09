@@ -1,0 +1,10 @@
+purchase_type: on_demand
+subnet_id: subnet-0e85642a831360a4c
+num_instances: 5
+key_name: neal-iam-keypair
+security_group_ids: sg-02f38fca21da3defb
+instance_type: m4.xlarge
+tag_name: cloudcompare
+vol_size: 100
+role: worker
+use_eips: true
