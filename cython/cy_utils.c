@@ -1633,21 +1633,19 @@ static int __Pyx_ValidateAndInit_memviewslice(
                 PyObject *original_obj);
 
 /* ObjectToMemviewSlice.proto */
-static CYTHON_INLINE __Pyx_memviewslice __Pyx_PyObject_to_MemoryviewSlice_ds_int(PyObject *, int writable_flag);
+static CYTHON_INLINE __Pyx_memviewslice __Pyx_PyObject_to_MemoryviewSlice_ds_int__const__(PyObject *, int writable_flag);
 
 /* ObjectToMemviewSlice.proto */
-static CYTHON_INLINE __Pyx_memviewslice __Pyx_PyObject_to_MemoryviewSlice_ds_double(PyObject *, int writable_flag);
+static CYTHON_INLINE __Pyx_memviewslice __Pyx_PyObject_to_MemoryviewSlice_ds_double__const__(PyObject *, int writable_flag);
 
 /* MemviewDtypeToObject.proto */
-static CYTHON_INLINE PyObject *__pyx_memview_get_double(const char *itemp);
-static CYTHON_INLINE int __pyx_memview_set_double(const char *itemp, PyObject *obj);
+static CYTHON_INLINE PyObject *__pyx_memview_get_double__const__(const char *itemp);
 
 /* CIntToPy.proto */
 static CYTHON_INLINE PyObject* __Pyx_PyInt_From_int(int value);
 
 /* MemviewDtypeToObject.proto */
-static CYTHON_INLINE PyObject *__pyx_memview_get_int(const char *itemp);
-static CYTHON_INLINE int __pyx_memview_set_int(const char *itemp, PyObject *obj);
+static CYTHON_INLINE PyObject *__pyx_memview_get_int__const__(const char *itemp);
 
 /* MemviewSliceCopyTemplate.proto */
 static __Pyx_memviewslice
@@ -1735,8 +1733,8 @@ static void __pyx_memoryview_refcount_objects_in_slice(char *, Py_ssize_t *, Py_
 static void __pyx_memoryview_slice_assign_scalar(__Pyx_memviewslice *, int, size_t, void *, int); /*proto*/
 static void __pyx_memoryview__slice_assign_scalar(char *, Py_ssize_t *, Py_ssize_t *, int, size_t, void *); /*proto*/
 static PyObject *__pyx_unpickle_Enum__set_state(struct __pyx_MemviewEnum_obj *, PyObject *); /*proto*/
-static __Pyx_TypeInfo __Pyx_TypeInfo_int = { "int", NULL, sizeof(int), { 0 }, 0, IS_UNSIGNED(int) ? 'U' : 'I', IS_UNSIGNED(int), 0 };
-static __Pyx_TypeInfo __Pyx_TypeInfo_double = { "double", NULL, sizeof(double), { 0 }, 0, 'R', 0, 0 };
+static __Pyx_TypeInfo __Pyx_TypeInfo_int__const__ = { "const int", NULL, sizeof(int const ), { 0 }, 0, IS_UNSIGNED(int const ) ? 'U' : 'I', IS_UNSIGNED(int const ), 0 };
+static __Pyx_TypeInfo __Pyx_TypeInfo_double__const__ = { "const double", NULL, sizeof(double const ), { 0 }, 0, 'R', 0, 0 };
 #define __Pyx_MODULE_NAME "cy_utils"
 extern int __pyx_module_is_main_cy_utils;
 int __pyx_module_is_main_cy_utils = 0;
@@ -2027,7 +2025,7 @@ static PyObject *__pyx_codeobj__27;
 /* "cy_utils.pyx":6
  * @cython.boundscheck(False)
  * @cython.wraparound(False)
- * cdef norm(double [:] a):             # <<<<<<<<<<<<<<
+ * cdef norm(const double [:] a):             # <<<<<<<<<<<<<<
  *     cdef int k = 0
  *     cdef double val = 2.0
  */
@@ -2048,7 +2046,7 @@ static PyObject *__pyx_f_8cy_utils_norm(__Pyx_memviewslice __pyx_v_a) {
 
   /* "cy_utils.pyx":7
  * @cython.wraparound(False)
- * cdef norm(double [:] a):
+ * cdef norm(const double [:] a):
  *     cdef int k = 0             # <<<<<<<<<<<<<<
  *     cdef double val = 2.0
  *     cdef double n
@@ -2056,7 +2054,7 @@ static PyObject *__pyx_f_8cy_utils_norm(__Pyx_memviewslice __pyx_v_a) {
   __pyx_v_k = 0;
 
   /* "cy_utils.pyx":8
- * cdef norm(double [:] a):
+ * cdef norm(const double [:] a):
  *     cdef int k = 0
  *     cdef double val = 2.0             # <<<<<<<<<<<<<<
  *     cdef double n
@@ -2093,7 +2091,7 @@ static PyObject *__pyx_f_8cy_utils_norm(__Pyx_memviewslice __pyx_v_a) {
  * 
  */
     __pyx_t_4 = __pyx_v_k;
-    __pyx_v_n = (__pyx_v_n + pow((*((double *) ( /* dim=0 */ (__pyx_v_a.data + __pyx_t_4 * __pyx_v_a.strides[0]) ))), __pyx_v_val));
+    __pyx_v_n = (__pyx_v_n + pow(((double)(*((double const  *) ( /* dim=0 */ (__pyx_v_a.data + __pyx_t_4 * __pyx_v_a.strides[0]) )))), __pyx_v_val));
   }
 
   /* "cy_utils.pyx":13
@@ -2113,7 +2111,7 @@ static PyObject *__pyx_f_8cy_utils_norm(__Pyx_memviewslice __pyx_v_a) {
   /* "cy_utils.pyx":6
  * @cython.boundscheck(False)
  * @cython.wraparound(False)
- * cdef norm(double [:] a):             # <<<<<<<<<<<<<<
+ * cdef norm(const double [:] a):             # <<<<<<<<<<<<<<
  *     cdef int k = 0
  *     cdef double val = 2.0
  */
@@ -2132,7 +2130,7 @@ static PyObject *__pyx_f_8cy_utils_norm(__Pyx_memviewslice __pyx_v_a) {
 /* "cy_utils.pyx":17
  * @cython.boundscheck(False)
  * @cython.wraparound(False)
- * def cos(int [:] inds1, double [:] vals1, int [:] inds2, double [:] vals2):             # <<<<<<<<<<<<<<
+ * def cos(const int [:] inds1, const double [:] vals1, const int [:] inds2, const double [:] vals2):             # <<<<<<<<<<<<<<
  *     cdef double product = 0
  *     cdef int k = 0
  */
@@ -2201,10 +2199,10 @@ static PyObject *__pyx_pw_8cy_utils_1cos(PyObject *__pyx_self, PyObject *__pyx_a
       values[2] = PyTuple_GET_ITEM(__pyx_args, 2);
       values[3] = PyTuple_GET_ITEM(__pyx_args, 3);
     }
-    __pyx_v_inds1 = __Pyx_PyObject_to_MemoryviewSlice_ds_int(values[0], PyBUF_WRITABLE); if (unlikely(!__pyx_v_inds1.memview)) __PYX_ERR(0, 17, __pyx_L3_error)
-    __pyx_v_vals1 = __Pyx_PyObject_to_MemoryviewSlice_ds_double(values[1], PyBUF_WRITABLE); if (unlikely(!__pyx_v_vals1.memview)) __PYX_ERR(0, 17, __pyx_L3_error)
-    __pyx_v_inds2 = __Pyx_PyObject_to_MemoryviewSlice_ds_int(values[2], PyBUF_WRITABLE); if (unlikely(!__pyx_v_inds2.memview)) __PYX_ERR(0, 17, __pyx_L3_error)
-    __pyx_v_vals2 = __Pyx_PyObject_to_MemoryviewSlice_ds_double(values[3], PyBUF_WRITABLE); if (unlikely(!__pyx_v_vals2.memview)) __PYX_ERR(0, 17, __pyx_L3_error)
+    __pyx_v_inds1 = __Pyx_PyObject_to_MemoryviewSlice_ds_int__const__(values[0], 0); if (unlikely(!__pyx_v_inds1.memview)) __PYX_ERR(0, 17, __pyx_L3_error)
+    __pyx_v_vals1 = __Pyx_PyObject_to_MemoryviewSlice_ds_double__const__(values[1], 0); if (unlikely(!__pyx_v_vals1.memview)) __PYX_ERR(0, 17, __pyx_L3_error)
+    __pyx_v_inds2 = __Pyx_PyObject_to_MemoryviewSlice_ds_int__const__(values[2], 0); if (unlikely(!__pyx_v_inds2.memview)) __PYX_ERR(0, 17, __pyx_L3_error)
+    __pyx_v_vals2 = __Pyx_PyObject_to_MemoryviewSlice_ds_double__const__(values[3], 0); if (unlikely(!__pyx_v_vals2.memview)) __PYX_ERR(0, 17, __pyx_L3_error)
   }
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L5_argtuple_error:;
@@ -2249,7 +2247,7 @@ static PyObject *__pyx_pf_8cy_utils_cos(CYTHON_UNUSED PyObject *__pyx_self, __Py
 
   /* "cy_utils.pyx":18
  * @cython.wraparound(False)
- * def cos(int [:] inds1, double [:] vals1, int [:] inds2, double [:] vals2):
+ * def cos(const int [:] inds1, const double [:] vals1, const int [:] inds2, const double [:] vals2):
  *     cdef double product = 0             # <<<<<<<<<<<<<<
  *     cdef int k = 0
  *     cdef int j = 0
@@ -2257,7 +2255,7 @@ static PyObject *__pyx_pf_8cy_utils_cos(CYTHON_UNUSED PyObject *__pyx_self, __Py
   __pyx_v_product = 0.0;
 
   /* "cy_utils.pyx":19
- * def cos(int [:] inds1, double [:] vals1, int [:] inds2, double [:] vals2):
+ * def cos(const int [:] inds1, const double [:] vals1, const int [:] inds2, const double [:] vals2):
  *     cdef double product = 0
  *     cdef int k = 0             # <<<<<<<<<<<<<<
  *     cdef int j = 0
@@ -2325,7 +2323,7 @@ static PyObject *__pyx_pf_8cy_utils_cos(CYTHON_UNUSED PyObject *__pyx_self, __Py
  */
       __pyx_t_7 = __pyx_v_k;
       __pyx_t_8 = __pyx_v_j;
-      __pyx_t_9 = (((*((int *) ( /* dim=0 */ (__pyx_v_inds1.data + __pyx_t_7 * __pyx_v_inds1.strides[0]) ))) == (*((int *) ( /* dim=0 */ (__pyx_v_inds2.data + __pyx_t_8 * __pyx_v_inds2.strides[0]) )))) != 0);
+      __pyx_t_9 = (((*((int const  *) ( /* dim=0 */ (__pyx_v_inds1.data + __pyx_t_7 * __pyx_v_inds1.strides[0]) ))) == (*((int const  *) ( /* dim=0 */ (__pyx_v_inds2.data + __pyx_t_8 * __pyx_v_inds2.strides[0]) )))) != 0);
       if (__pyx_t_9) {
 
         /* "cy_utils.pyx":26
@@ -2337,7 +2335,7 @@ static PyObject *__pyx_pf_8cy_utils_cos(CYTHON_UNUSED PyObject *__pyx_self, __Py
  */
         __pyx_t_10 = __pyx_v_k;
         __pyx_t_11 = __pyx_v_j;
-        __pyx_v_product = (__pyx_v_product + ((*((double *) ( /* dim=0 */ (__pyx_v_vals1.data + __pyx_t_10 * __pyx_v_vals1.strides[0]) ))) * (*((double *) ( /* dim=0 */ (__pyx_v_vals2.data + __pyx_t_11 * __pyx_v_vals2.strides[0]) )))));
+        __pyx_v_product = (__pyx_v_product + ((*((double const  *) ( /* dim=0 */ (__pyx_v_vals1.data + __pyx_t_10 * __pyx_v_vals1.strides[0]) ))) * (*((double const  *) ( /* dim=0 */ (__pyx_v_vals2.data + __pyx_t_11 * __pyx_v_vals2.strides[0]) )))));
 
         /* "cy_utils.pyx":25
  *             k = count1
@@ -2389,7 +2387,7 @@ static PyObject *__pyx_pf_8cy_utils_cos(CYTHON_UNUSED PyObject *__pyx_self, __Py
   /* "cy_utils.pyx":17
  * @cython.boundscheck(False)
  * @cython.wraparound(False)
- * def cos(int [:] inds1, double [:] vals1, int [:] inds2, double [:] vals2):             # <<<<<<<<<<<<<<
+ * def cos(const int [:] inds1, const double [:] vals1, const int [:] inds2, const double [:] vals2):             # <<<<<<<<<<<<<<
  *     cdef double product = 0
  *     cdef int k = 0
  */
@@ -16216,7 +16214,7 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
   /* "cy_utils.pyx":17
  * @cython.boundscheck(False)
  * @cython.wraparound(False)
- * def cos(int [:] inds1, double [:] vals1, int [:] inds2, double [:] vals2):             # <<<<<<<<<<<<<<
+ * def cos(const int [:] inds1, const double [:] vals1, const int [:] inds2, const double [:] vals2):             # <<<<<<<<<<<<<<
  *     cdef double product = 0
  *     cdef int k = 0
  */
@@ -16624,7 +16622,7 @@ if (!__Pyx_RefNanny) {
   /* "cy_utils.pyx":17
  * @cython.boundscheck(False)
  * @cython.wraparound(False)
- * def cos(int [:] inds1, double [:] vals1, int [:] inds2, double [:] vals2):             # <<<<<<<<<<<<<<
+ * def cos(const int [:] inds1, const double [:] vals1, const int [:] inds2, const double [:] vals2):             # <<<<<<<<<<<<<<
  *     cdef double product = 0
  *     cdef int k = 0
  */
@@ -19770,7 +19768,7 @@ no_fail:
 }
 
 /* ObjectToMemviewSlice */
-  static CYTHON_INLINE __Pyx_memviewslice __Pyx_PyObject_to_MemoryviewSlice_ds_int(PyObject *obj, int writable_flag) {
+  static CYTHON_INLINE __Pyx_memviewslice __Pyx_PyObject_to_MemoryviewSlice_ds_int__const__(PyObject *obj, int writable_flag) {
     __Pyx_memviewslice result = { 0, 0, { 0 }, { 0 }, { 0 } };
     __Pyx_BufFmt_StackElem stack[1];
     int axes_specs[] = { (__Pyx_MEMVIEW_DIRECT | __Pyx_MEMVIEW_STRIDED) };
@@ -19781,7 +19779,7 @@ no_fail:
     }
     retcode = __Pyx_ValidateAndInit_memviewslice(axes_specs, 0,
                                                  PyBUF_RECORDS_RO | writable_flag, 1,
-                                                 &__Pyx_TypeInfo_int, stack,
+                                                 &__Pyx_TypeInfo_int__const__, stack,
                                                  &result, obj);
     if (unlikely(retcode == -1))
         goto __pyx_fail;
@@ -19793,7 +19791,7 @@ __pyx_fail:
 }
 
 /* ObjectToMemviewSlice */
-  static CYTHON_INLINE __Pyx_memviewslice __Pyx_PyObject_to_MemoryviewSlice_ds_double(PyObject *obj, int writable_flag) {
+  static CYTHON_INLINE __Pyx_memviewslice __Pyx_PyObject_to_MemoryviewSlice_ds_double__const__(PyObject *obj, int writable_flag) {
     __Pyx_memviewslice result = { 0, 0, { 0 }, { 0 }, { 0 } };
     __Pyx_BufFmt_StackElem stack[1];
     int axes_specs[] = { (__Pyx_MEMVIEW_DIRECT | __Pyx_MEMVIEW_STRIDED) };
@@ -19804,7 +19802,7 @@ __pyx_fail:
     }
     retcode = __Pyx_ValidateAndInit_memviewslice(axes_specs, 0,
                                                  PyBUF_RECORDS_RO | writable_flag, 1,
-                                                 &__Pyx_TypeInfo_double, stack,
+                                                 &__Pyx_TypeInfo_double__const__, stack,
                                                  &result, obj);
     if (unlikely(retcode == -1))
         goto __pyx_fail;
@@ -19816,15 +19814,8 @@ __pyx_fail:
 }
 
 /* MemviewDtypeToObject */
-  static CYTHON_INLINE PyObject *__pyx_memview_get_double(const char *itemp) {
-    return (PyObject *) PyFloat_FromDouble(*(double *) itemp);
-}
-static CYTHON_INLINE int __pyx_memview_set_double(const char *itemp, PyObject *obj) {
-    double value = __pyx_PyFloat_AsDouble(obj);
-    if ((value == (double)-1) && PyErr_Occurred())
-        return 0;
-    *(double *) itemp = value;
-    return 1;
+  static CYTHON_INLINE PyObject *__pyx_memview_get_double__const__(const char *itemp) {
+    return (PyObject *) PyFloat_FromDouble(*(double const  *) itemp);
 }
 
 /* CIntToPy */
@@ -19858,38 +19849,9 @@ static CYTHON_INLINE int __pyx_memview_set_double(const char *itemp, PyObject *o
     }
 }
 
-/* CIntFromPyVerify */
-  #define __PYX_VERIFY_RETURN_INT(target_type, func_type, func_value)\
-    __PYX__VERIFY_RETURN_INT(target_type, func_type, func_value, 0)
-#define __PYX_VERIFY_RETURN_INT_EXC(target_type, func_type, func_value)\
-    __PYX__VERIFY_RETURN_INT(target_type, func_type, func_value, 1)
-#define __PYX__VERIFY_RETURN_INT(target_type, func_type, func_value, exc)\
-    {\
-        func_type value = func_value;\
-        if (sizeof(target_type) < sizeof(func_type)) {\
-            if (unlikely(value != (func_type) (target_type) value)) {\
-                func_type zero = 0;\
-                if (exc && unlikely(value == (func_type)-1 && PyErr_Occurred()))\
-                    return (target_type) -1;\
-                if (is_unsigned && unlikely(value < zero))\
-                    goto raise_neg_overflow;\
-                else\
-                    goto raise_overflow;\
-            }\
-        }\
-        return (target_type) value;\
-    }
-
 /* MemviewDtypeToObject */
-  static CYTHON_INLINE PyObject *__pyx_memview_get_int(const char *itemp) {
-    return (PyObject *) __Pyx_PyInt_From_int(*(int *) itemp);
-}
-static CYTHON_INLINE int __pyx_memview_set_int(const char *itemp, PyObject *obj) {
-    int value = __Pyx_PyInt_As_int(obj);
-    if ((value == (int)-1) && PyErr_Occurred())
-        return 0;
-    *(int *) itemp = value;
-    return 1;
+  static CYTHON_INLINE PyObject *__pyx_memview_get_int__const__(const char *itemp) {
+    return (PyObject *) __Pyx_PyInt_From_int(*(int const  *) itemp);
 }
 
 /* MemviewSliceCopyTemplate */
@@ -19958,6 +19920,28 @@ no_fail:
     __Pyx_RefNannyFinishContext();
     return new_mvs;
 }
+
+/* CIntFromPyVerify */
+  #define __PYX_VERIFY_RETURN_INT(target_type, func_type, func_value)\
+    __PYX__VERIFY_RETURN_INT(target_type, func_type, func_value, 0)
+#define __PYX_VERIFY_RETURN_INT_EXC(target_type, func_type, func_value)\
+    __PYX__VERIFY_RETURN_INT(target_type, func_type, func_value, 1)
+#define __PYX__VERIFY_RETURN_INT(target_type, func_type, func_value, exc)\
+    {\
+        func_type value = func_value;\
+        if (sizeof(target_type) < sizeof(func_type)) {\
+            if (unlikely(value != (func_type) (target_type) value)) {\
+                func_type zero = 0;\
+                if (exc && unlikely(value == (func_type)-1 && PyErr_Occurred()))\
+                    return (target_type) -1;\
+                if (is_unsigned && unlikely(value < zero))\
+                    goto raise_neg_overflow;\
+                else\
+                    goto raise_overflow;\
+            }\
+        }\
+        return (target_type) value;\
+    }
 
 /* CIntFromPy */
   static CYTHON_INLINE int __Pyx_PyInt_As_int(PyObject *x) {

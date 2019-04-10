@@ -2,7 +2,7 @@ from pyspark.sql import SparkSession, DataFrame
 from pyspark.ml import Pipeline, Transformer, PipelineModel
 from pyspark.ml.feature import HashingTF, IDF, IDFModel, Tokenizer
 from pyspark.sql.functions import udf, struct
-from pyspark.sql.types import StringType
+from pyspark.sql.types import StringType, FloatType
 import numpy as np
 from redis import StrictRedis
 import zlib
@@ -68,18 +68,17 @@ def store_redis(row):
 
     for tag in tags:
 #         r.hset(tag+':'+idd[:2],idd[2:],1)
-         r.append(trim(tag), ",id:"+idd)
+         r.append(tag.strip(), ",id:"+idd)
     return 1
 #    return to_write
 
-#redis_udf = udf(lambda row: store_redis(row), StringType())
-dd = sc.read.parquet(parquetpath).repartition(1000)
-dd.createOrReplaceTempView("table1").cache()
-df2 = spark.sql("SELECT field1 AS f1, field2 as f2 from table1 limit 100")
-df2.collect()
+redis_udf = udf(lambda row: store_redis(row), FloatType())
+dd = sc.read.parquet(parquetpath).repartition(1000) #.createOrReplaceTempView("table1")
+#df2 = sc.sql("SELECT count(id) from table1 where tags like '%java%'")
+#df2.show(100)
 #dd = dd.select('id','features','title','creation_date')
-# dd = dd.withColumn('tw',redis_udf(struct([dd[x] for x in dd.columns]))).select('id','tw')\
-# .select('tw').collect()
+dd = dd.withColumn('tw',redis_udf(struct([dd[x] for x in dd.columns]))).select('id','tw')\
+ .select('tw').collect()
 #.write.format("org.apache.spark.sql.redis").option("table", "id").option("key.column", "id").save()
 
 
