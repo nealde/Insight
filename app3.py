@@ -104,15 +104,16 @@ def kafka_test(n_clicks, text, tags):
         output = []
         for res in results:
              title = r.get(res[0]).split('|')[0]
-             ref = "<a ref='www.stackoverflow.com/questions/{}/{}'> {} </a>"\
-             .format(res[0][3:],title.replace(' ','-'),title)
-             output.append([res[1],title , ref])
+             ref = "'www.stackoverflow.com/questions/{}/{}'"\
+             .format(res[0][3:],title.replace(' ','-'))
+             output.append([res[1],title,ref])
 
         print output
     if n_clicks > 0:
         return html.Table(
                 [html.Tr([html.Th(x) for x in ['Similarity', 'title', 'Hyperlink']])]+
-                [html.Tr([html.Td(o) for o in r]) for r in output], style={'width':"100%"})
+                [html.Tr([html.td(r[0]), html.A(href=r[2], children=r[1]) for r in output])]
+                #[html.Tr([*[html.Td(o) for o in r]) for r in output[:-1],html.A(output[-1])]], style={'width':"100%"})
     else:
         return "Output will appear here"
 
