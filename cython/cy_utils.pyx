@@ -3,10 +3,10 @@ cimport cython
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef norm(double [:] a):
+cdef norm(const double [:] a):
     cdef int k = 0
     cdef double val = 2.0
-    cdef double n
+    cdef double n = 0.0
     for i in range(len(a)):
         k = i
         n = n+a[k]**val
@@ -14,7 +14,7 @@ cdef norm(double [:] a):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def cos(int [:] inds1, double [:] vals1, int [:] inds2, double [:] vals2):
+def cos(const int [:] inds1, const double [:] vals1, const int [:] inds2, const double [:] vals2):
     cdef double product = 0
     cdef int k = 0
     cdef int j = 0
@@ -24,5 +24,5 @@ def cos(int [:] inds1, double [:] vals1, int [:] inds2, double [:] vals2):
             j = count2
             if inds1[k] == inds2[j]:
                 product += vals1[k]*vals2[j]
-    product /= norm(vals1)*norm(vals2)
+    product /= (norm(vals1)*norm(vals2))
     return product

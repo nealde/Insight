@@ -1,4 +1,3 @@
-
 import os
 os.environ['PYSPARK_SUBMIT_ARGS'] = '--packages org.apache.spark:spark-streaming-kafka-0-8_2.11:2.2.0 pyspark-shell'
 from pyspark.sql.functions import udf
@@ -55,11 +54,11 @@ def report_to_redis(job, count=5):
     # properly serialized.
     r = StrictRedis.from_url("redis://10.0.0.10:6379")
     for i in range(count):
-        res = r.zpopmax('temp'+str(job))
+        res = r.zpopmax('temp0')
         print(res)
         title = r.hget(res[0][0][:-1],res[0][0][-1:]+':t')
         r.set('success:'+str(job)+'|'+str(i), res[0][0]+'|%1.3f'%res[0][1])
-    r.delete('temp'+str(job))
+    r.delete('temp0')
     return 0
 
 
@@ -76,21 +75,65 @@ def get_features(key, compare, limit=True):
     import numpy as np
     ## call the Singleton implementation of Redis
     r = connection()
-    key_front = key[:-1]
-    key_back = key[-1:]
-    # pull the data, decompress it, and change the data type
-    inds = np.array(np.frombuffer(zlib.decompress(r.hget(key_front, key_back+':i')),dtype=np.int32))
-    vals = np.array(np.frombuffer(zlib.decompress(r.hget(key_front, key_back+':v')),dtype=np.float16)).astype(np.float64)
-    # extract the indives and values from the target SparseVector
-    inds2 = np.array(compare.indices)
-    vals2 = np.array(compare.values)
-    sv = SparseVector(1048576, inds, vals)
-    sv2 = SparseVector(1048576, inds2, vals2)
-    score = sv.dot(sv2)/(sv.norm(2)*sv2.norm(2))
-#    score = cos(inds,vals,inds2,vals2)
-    # limit the number of points written to the database
-#    if score > 0.05 and limit:
-    r.zadd('temp0', {key:score})
+    pipe = r.pipeline()
+    # change code to be ready for chunks
+    keys = key.split(',')
+    
+    # pipeline the key acquisition 
+    for key in keys:
+        key_front = key[:-1]
+        key_back = key[-1:]
+        pipe.hget(key_front, key_back+':i')
+        pipe.hget(key_front, key_back+':v')
+        # pull the data, decompress it, and change the data type
+        #inds = np.array(np.frombuffer(zlib.decompress(r.hget(key_front, key_back+':i')),dtype=np.int32))
+        #vals = np.array(np.frombuffer(zlib.decompress(r.hget(key_front, key_back+':v')),dtype=np.float16)).astype(np.float64)
+        # extract the indives and values from the target SparseVector
+        #inds2 = np.array(compare.indices)
+        #vals2 = np.array(compare.values)
+        #score = cos(inds,vals,inds2,vals2)
+        # limit the number of points written to the database
+#        if score > 0.05 and limit:
+    values = pipe.execute()
+    #print(values)
+    target_inds = np.array(compare.indices)
+    target_vals = np.array(compare.values)
+    inds = values[::2]
+    vals = values[1::2]
+    scores = [(0.0,'blank')]
+    data_store = np.zeros((1000,2),dtype=np.int32)
+#    max = 0.0
+    for ind, val, key in zip(inds, vals, keys):
+        ind = np.array(np.frombuffer(zlib.decompress(ind),dtype=np.int32))
+#        val = np.random.rand(150)
+        val = np.frombuffer(zlib.decompress(val),dtype=np.float16).astype(np.float64)
+#        ind = np.random.randint(0,104857,size=len(val)).astype(np.int32)
+#        sv = SparseVector(1048576, ind, val)
+#        sc = sv.dot(compare)/(compare.norm(2)*sv.norm(2))
+        #sc = np.random.rand(1)[0]
+        try:
+            sc = cos(ind, val, target_inds, target_vals) #, data_store)
+        except:
+#            print(e)
+            sc = 0.1
+            print(ind, target_inds)
+        if sc > max(scores)[0] or len(scores) < 5:
+            scores.append((sc, key))
+        
+#        scores.append((cos(ind, val, target_inds, target_vals),key))
+#    print(len(scores))
+    scores = sorted(scores, reverse=True)
+#    print(scores[:5])
+    # write the top 5
+#    dd = dict()
+    for score, key in scores[:5]:
+#        print(score, key)
+        pipe.zadd('temp0', {key:score})
+    pipe.execute()
+#        dd[key] = score
+#    r.zadd('temp0', {key: score})
+    #r.zadd('temp0', {key:score})
+    #pipe.execute()
     return 1
 
 
@@ -121,7 +164,7 @@ def retrieve_keys(tags, common=True):
                  print('Tag %s not found - check spelling' % tag)
     if not common:
         available_keys = set().intersection(*available_keys)
-    return available_keys
+    return list(available_keys)
 
 def handler(message):
     """The main function which is applied to the Kafka streaming session
@@ -143,11 +186,16 @@ def handler(message):
         data = spark.createDataFrame([l1],['cleaned_body','tags'])
         data = model.transform(data)
         d = data.select('features','tags').collect()
-
+#        print(d)
         keys = retrieve_keys(d[0]['tags'])
-        print(len(keys))
-        keys = spark.createDataFrame(keys, StringType()).repartition(max(49,len(keys)//10000))
-
+        # look to optimize slice length based on keys and throughput
+        slice_length = max(len(keys)//10000,min(len(keys)//49,200))
+        print(slice_length)
+#        slice_length = 1000
+        keys2 = [','.join(keys[i:i+slice_length]) for i in range(0,len(keys),slice_length)]
+        #keys2 = [str(keys[(i-1)*slice_length:i*slice_length]) for i in range(len(keys)//slice_length-1)]
+        print(len(keys), len(keys2))
+        keys = spark.createDataFrame(keys2, StringType())
         score_udf = udf(lambda r: get_features(r,d[0]['features']), FloatType())
         keys = keys.withColumn('features', score_udf(keys['value'])).collect()
         # need to get top result from zadd

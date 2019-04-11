@@ -2,7 +2,7 @@ from pyspark.sql import SparkSession, DataFrame
 from pyspark.ml import Pipeline, Transformer, PipelineModel
 from pyspark.ml.feature import HashingTF, IDF, IDFModel, Tokenizer
 from pyspark.sql.functions import udf, struct
-from pyspark.sql.types import StringType
+from pyspark.sql.types import StringType, FloatType
 import numpy as np
 from redis import StrictRedis
 import zlib
@@ -68,7 +68,7 @@ def store_redis(row):
 
     for tag in tags:
 #         r.hset(tag+':'+idd[:2],idd[2:],1)
-         r.append(trim(tag), ",id:"+idd)
+         r.append(tag.strip(), ",id:"+idd)
     return 1
 #    return to_write
 
