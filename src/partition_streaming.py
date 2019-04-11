@@ -113,7 +113,7 @@ def get_features(key, compare, limit=True):
         #sc = np.random.rand(1)[0]
         try:
             sc = cos(ind, val, target_inds, target_vals) #, data_store)
-#        except:
+        except:
 #            print(e)
             sc = 0.1
             print(ind, target_inds)
