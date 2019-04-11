@@ -27,36 +27,46 @@ app.layout = html.Div(
                 dcc.Textarea(
                     placeholder="Enter a Stack Overflow link...",
                     value="",
-                    style={"width": "50%", "height": "15"},
+                    style={"width": "100%", "height": "15"},
                     id="link_text",
                 ),
                 html.H5("Title"),
                 dcc.Textarea(
                     placeholder="Enter a title...",
                     value="",
-                    style={"width": "50%", "height": "15"},
+                    style={"width": "100%", "height": "15"},
                     id="title_text",
                 ),
-            ],
-        ),
+        #    ],
+        #),
         html.H5("Question Body:"),
         dcc.Textarea(
             placeholder="Enter a question!",
             value="",
-            style={"width": "50%", "height": "200"},
+            style={"width": "100%", "height": "200"},
             id="input_text",
         ),
         html.H5("Enter tags to filter by below"),
         dcc.Textarea(
             placeholder="Enter some tags...",
             value="",
-            style={"width": "50%", "height": "15"},
+            style={"width": "100%", "height": "15"},
             id="tags_text",
         ),
         html.Button("Submit", id="button"),
         html.Button("Scrape", id="button-test"),
         html.Div(["Test output will be reported here"], id="output"),
-    ]
+        ], style={'width':'50%','display': 'inline-block'},
+    ),
+    html.Div(children=[
+        html.H3('Strain the system using buttons below:'),
+        html.Button('Strain Kafka', id='kafka-test'),
+        html.Button('Strain Pipeline',id='pipe-test'),
+        html.P("blah blah"),
+        html.H1("big text big textbig text big textbig text big text"),
+        html.Div([html.P(" "),],style={'height':'300'}),
+    ],style={'width':'49%','display': 'inline-block'},),
+    ], className='row'
 )
 
 default_text = """<p>I am getting unexpected results when adding items to sets that are in a list such that i can specify the set i need by indexing the list as shown in the following code:</p>
