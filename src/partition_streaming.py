@@ -1,11 +1,10 @@
-
 import os
 os.environ['PYSPARK_SUBMIT_ARGS'] = '--packages org.apache.spark:spark-streaming-kafka-0-8_2.11:2.2.0 pyspark-shell'
 from pyspark.sql.functions import udf
 from pyspark.sql.types import StringType, DataType, FloatType
 from pyspark.sql import SparkSession
 from pyspark.ml import PipelineModel
-#from pyspark.ml.linalg import SparseVector, VectorUDT
+from pyspark.ml.linalg import SparseVector, VectorUDT
 
 #    Spark Streaming
 from pyspark.streaming import StreamingContext
@@ -102,27 +101,33 @@ def get_features(key, compare, limit=True):
     inds = values[::2]
     vals = values[1::2]
     scores = [(0.0,'blank')]
+    data_store = np.zeros((1000,2),dtype=np.int32)
 #    max = 0.0
     for ind, val, key in zip(inds, vals, keys):
-        np.array(ind = np.frombuffer(zlib.decompress(ind),dtype=np.int32))
+        ind = np.array(np.frombuffer(zlib.decompress(ind),dtype=np.int32))
 #        val = np.random.rand(150)
         val = np.frombuffer(zlib.decompress(val),dtype=np.float16).astype(np.float64)
 #        ind = np.random.randint(0,104857,size=len(val)).astype(np.int32)
 #        sv = SparseVector(1048576, ind, val)
 #        sc = sv.dot(compare)/(compare.norm(2)*sv.norm(2))
         #sc = np.random.rand(1)[0]
-        sc = cos(ind, val, target_inds, target_vals)
+        try:
+            sc = cos(ind, val, target_inds, target_vals) #, data_store)
+#        except:
+#            print(e)
+            sc = 0.1
+            print(ind, target_inds)
         if sc > max(scores)[0] or len(scores) < 5:
             scores.append((sc, key))
         
 #        scores.append((cos(ind, val, target_inds, target_vals),key))
-    print(len(scores))
+#    print(len(scores))
     scores = sorted(scores, reverse=True)
-    print(scores[:5])
+#    print(scores[:5])
     # write the top 5
 #    dd = dict()
     for score, key in scores[:5]:
-        print(score, key)
+#        print(score, key)
         pipe.zadd('temp0', {key:score})
     pipe.execute()
 #        dd[key] = score

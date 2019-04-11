@@ -5,7 +5,7 @@ from pyspark.sql.functions import udf
 from pyspark.sql.types import StringType, DataType, FloatType
 from pyspark.sql import SparkSession
 from pyspark.ml import PipelineModel
-#from pyspark.ml.linalg import SparseVector, VectorUDT
+from pyspark.ml.linalg import SparseVector, VectorUDT
 
 #    Spark Streaming
 from pyspark.streaming import StreamingContext
@@ -84,7 +84,10 @@ def get_features(key, compare, limit=True):
     # extract the indives and values from the target SparseVector
     inds2 = np.array(compare.indices)
     vals2 = np.array(compare.values)
-    score = cos(inds,vals,inds2,vals2)
+    sv = SparseVector(1048576, inds, vals)
+    sv2 = SparseVector(1048576, inds2, vals2)
+    score = sv.dot(sv2)/(sv.norm(2)*sv2.norm(2))
+#    score = cos(inds,vals,inds2,vals2)
     # limit the number of points written to the database
 #    if score > 0.05 and limit:
     r.zadd('temp0', {key:score})

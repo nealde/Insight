@@ -6,7 +6,7 @@ cimport cython
 cdef norm(const double [:] a):
     cdef int k = 0
     cdef double val = 2.0
-    cdef double n
+    cdef double n = 0.0
     for i in range(len(a)):
         k = i
         n = n+a[k]**val
@@ -24,5 +24,5 @@ def cos(const int [:] inds1, const double [:] vals1, const int [:] inds2, const 
             j = count2
             if inds1[k] == inds2[j]:
                 product += vals1[k]*vals2[j]
-    product /= norm(vals1)*norm(vals2)
+    product /= (norm(vals1)*norm(vals2))
     return product
