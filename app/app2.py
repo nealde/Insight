@@ -62,6 +62,15 @@ app.layout = html.Div(
         html.H3('Strain the system using buttons below:'),
         html.Button('Strain Kafka', id='kafka-test'),
         html.Button('Strain Pipeline',id='pipe-test'),
+        html.H5('Kafka Throughput:')
+        html.Div([
+            dcc.Graph(id='kafka'),
+        ], className='twelve columns'),
+        html.H5("Pipeline Throughput:")
+        html.Div([
+            dcc.Graph(id='pipeline'),
+        ], className='twelve columns'),
+        dcc.Interval(id='update', interval=1000, n_intervals=0),
         html.P("blah blah"),
         html.H1("big text big textbig text big textbig text big text"),
         html.Div([html.P(" "),],style={'height':'300'}),
@@ -194,7 +203,7 @@ def input_test(n_clicks, link):
     [dash.dependencies.Input("button", "n_clicks")],
     [State("input_text", "value"), State("tags_text", "value")],
 )
-def kafka_test(n_clicks, text, tags):
+def pipe(n_clicks, text, tags):
     """The main function, which parses the input fields: <text> and <tags>,
     packages them in json and sends them to Kafka for processing in
     the Spark Streaming application."""
@@ -267,6 +276,97 @@ def kafka_test(n_clicks, text, tags):
             ),
         ]
     )
+
+@app.callback(
+    Output("output", "children"),
+    [Input("button", "n_clicks")],
+    [State("input_text", "value"), State("tags_text", "value")],
+)
+def kafka_test(n_clicks, text, tags):
+    """The main function, which parses the input fields: <text> and <tags>,
+    packages them in json and sends them to Kafka for processing in
+    the Spark Streaming application."""
+    # on page load, all the buttons get clicked.
+    if n_clicks < 1:
+        return "Output will appear here"
+    st = time.time()
+    if tags.find(",") > 0:
+        tags = tags.split(",")
+    else:
+        tags = [tags]
+
+    # make sure Redis is clear before we submit
+    redis_host = "10.0.0.10"
+    redis_port = 6379
+    r = redis.Redis(host=redis_host, port=redis_port)
+
+    # connect to kafka cluster
+    cluster = kafka.KafkaClient("10.0.0.11:9092")
+    prod = kafka.SimpleProducer(cluster, async=False)
+
+data = list(np.random.rand(15))
+
+@app.callback(Output('kafka', 'figure'), [Input('update', 'n_intervals')])
+def gen_wind_speed(interval):
+    # now = dt.datetime.now()
+    # sec = now.second
+    # minute = now.minute
+    # hour = now.hour
+    #
+    # total_time = (hour * 3600) + (minute * 60) + (sec)
+    global data
+    for i in range(15):
+        data.append(np.random.rand(1)[0])
+    # con = sqlite3.connect("./Data/wind-data.db")
+    # df = pd.read_sql_query('SELECT Speed, SpeedError, Direction from Wind where\
+    #                         rowid > "{}" AND rowid <= "{}";'
+    #                         .format(total_time-200, total_time), con)
+
+    trace = Scatter(
+        y=data,
+        line=Line(
+            color='#42C4F7'
+        ),
+        hoverinfo='skip',
+        # error_y=ErrorY(
+        #     type='data',
+        #     array=df['SpeedError'],
+        #     thickness=1.5,
+        #     width=2,
+        #     color='#B4E8FC'
+        # ),
+        mode='lines'
+    )
+
+    layout = Layout(
+        height=450,
+        xaxis=dict(
+            range=[0, 200],
+            showgrid=False,
+            showline=False,
+            zeroline=False,
+            fixedrange=True,
+            tickvals=[0, 50, 100, 150, 200],
+            ticktext=['200', '150', '100', '50', '0'],
+            title='Time Elapsed (sec)'
+        ),
+        yaxis=dict(
+            range=[min(0, min(data)),
+                   max(45, max(data))],
+            showline=False,
+            fixedrange=True,
+            zeroline=False,
+            nticks=max(6, round(data/10))
+        ),
+        margin=Margin(
+            t=45,
+            l=50,
+            r=50
+        )
+    )
+
+return Figure(data=[trace], layout=layout)
+
 
 
 if __name__ == "__main__":
