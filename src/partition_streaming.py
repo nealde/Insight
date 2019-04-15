@@ -15,7 +15,7 @@ import zlib
 import json
 
 # local cosine similarity in Cython
-from cy_utils import cos
+from cy_utils3 import cos
 
 
 idfpath = 's3n://neal-dawson-elli-insight-data/models/idf-model3'
@@ -61,6 +61,41 @@ def report_to_redis(job, count=5):
     r.delete('temp0')
     return 0
 
+def common_inds(a,b):
+    inds = []
+    count = 0
+#     print(len(a), len(b))
+    n = len(b)
+#     print(n)
+    m = len(a)
+    total = 0
+    i = 0
+#     while i < m:
+    for k in range(2*m):
+#         print('i:', i, 'count:', count, a[i], b[count])
+        total += 1
+#         print(a[i], b[count])
+        if a[i] == b[count]:
+            inds.append([i,count])
+            count += 1
+        elif a[i] > b[count]:
+            i -= 1
+            count += 1
+        if count >= n:
+            break
+        i += 1
+    return inds
+
+def cos_np(inds1,vals1,vals2):
+#     i1 = np.where(np.isin(inds1,inds2))
+#     i2 = np.where(np.isin(inds2,inds1))
+    inds1 = np.array(inds1, dtype=np.int32)
+    i1 = inds1[:,0]
+    i2 = inds1[:,1]
+    product = np.sum(vals1[i1]*vals2[i2])
+    return product/np.linalg.norm(vals1)/np.linalg.norm(vals2)
+
+
 
 def get_features(key, compare, limit=True):
     """Given the key and the target SparseVector to match, connect to Redis,
@@ -101,7 +136,7 @@ def get_features(key, compare, limit=True):
     inds = values[::2]
     vals = values[1::2]
     scores = [(0.0,'blank')]
-    data_store = np.zeros((1000,2),dtype=np.int32)
+    data_store = np.zeros((300,2),dtype=np.int32)
 #    max = 0.0
     for ind, val, key in zip(inds, vals, keys):
         ind = np.array(np.frombuffer(zlib.decompress(ind),dtype=np.int32))
@@ -111,12 +146,31 @@ def get_features(key, compare, limit=True):
 #        sv = SparseVector(1048576, ind, val)
 #        sc = sv.dot(compare)/(compare.norm(2)*sv.norm(2))
         #sc = np.random.rand(1)[0]
-        try:
-            sc = cos(ind, val, target_inds, target_vals) #, data_store)
-        except:
+        sc = cos(ind, val, target_inds, target_vals, data_store)
+#        try:
+#            c_inds = common_inds(ind, target_inds)
+#        except:
+#        print(list(ind), list(target_inds))
+#        print(len(target_inds), len(ind)) 
+#        try:
+#            if len(target_inds) > len(ind):
+#                c_inds = common_inds(ind,target_inds)
+#                sc = cos_np(c_inds,val,target_vals)#
+#
+#            else:
+#                c_inds = common_inds(target_inds, ind)
+#                sc = cos_np(c_inds,target_vals,val)
+#        except Exception, e:
 #            print(e)
-            sc = 0.1
-            print(ind, target_inds)
+#            sc = 0.1
+#            print(target_inds, ind)
+#        sc = cos(val,target_vals)
+#        try:
+#            sc = cos(ind, val, target_inds, target_vals) #, data_store)
+#        except:
+#            print(e)
+#            sc = 0.1
+#            print(ind, target_inds)
         if sc > max(scores)[0] or len(scores) < 5:
             scores.append((sc, key))
         

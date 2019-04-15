@@ -10,8 +10,8 @@ import os
 #except FileNotFoundError:
 #    pass
 extension = Extension(
-    name="cy_utils",
-    sources = ["cy_utils.pyx"] #, ida_dir+"/ida.c",ida_dir+"/ida_band.c",ida_dir+"/ida_dense.c",ida_dir+"/ida_direct.c",ida_dir+"/ida_ic.c",ida_dir+"/ida_io.c",
+    name="cy_utils3",
+    sources = ["cy_utils3.pyx"] #, ida_dir+"/ida.c",ida_dir+"/ida_band.c",ida_dir+"/ida_dense.c",ida_dir+"/ida_direct.c",ida_dir+"/ida_ic.c",ida_dir+"/ida_io.c",
     			#	ida_dir+"/nvector_serial.c",ida_dir+"/sundials_band.c",ida_dir+"/sundials_dense.c",ida_dir+"/sundials_direct.c",ida_dir+"/sundials_math.c",ida_dir+"/sundials_nvector.c"],
     # sources=["P2D_fd.pyx"],
     #library_dirs=['ida'],
