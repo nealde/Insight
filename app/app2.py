@@ -9,6 +9,8 @@ import json
 import requests
 from lxml import html as xhtml
 import random, string
+import numpy as np
+from plotly.graph_objs import *
 
 
 external_stylesheets = ["https://codepen.io/chriddyp/pen/bWLwgP.css"]
@@ -43,7 +45,7 @@ app.layout = html.Div(
         dcc.Textarea(
             placeholder="Enter a question!",
             value="",
-            style={"width": "100%", "height": "200"},
+            style={"width": "100%", "height": "180"},
             id="input_text",
         ),
         html.H5("Enter tags to filter by below"),
@@ -56,25 +58,25 @@ app.layout = html.Div(
         html.Button("Submit", id="button"),
         html.Button("Scrape", id="button-test"),
         html.Div(["Test output will be reported here"], id="output"),
-        ], style={'width':'50%','display': 'inline-block'},
+        ], style={'width':'45%','display': 'inline-block'},
     ),
     html.Div(children=[
         html.H3('Strain the system using buttons below:'),
         html.Button('Strain Kafka', id='kafka-test'),
         html.Button('Strain Pipeline',id='pipe-test'),
-        html.H5('Kafka Throughput:')
+        html.H5('Kafka Throughput:'),
         html.Div([
             dcc.Graph(id='kafka'),
         ], className='twelve columns'),
-        html.H5("Pipeline Throughput:")
+        html.H5("Pipeline Throughput:"),
         html.Div([
             dcc.Graph(id='pipeline'),
         ], className='twelve columns'),
-        dcc.Interval(id='update', interval=1000, n_intervals=0),
-        html.P("blah blah"),
-        html.H1("big text big textbig text big textbig text big text"),
-        html.Div([html.P(" "),],style={'height':'300'}),
-    ],style={'width':'49%','display': 'inline-block'},),
+        dcc.Interval(id='update', interval=500000000, n_intervals=0),
+#        html.P("blah blah"),
+#        html.H1("big text big textbig text big textbig text big text"),
+#        html.Div([html.P(" "),],style={'height':'300'}),
+    ],style={'width':'45%','display': 'inline-block'},),
     ], className='row'
 )
 
@@ -277,34 +279,43 @@ def pipe(n_clicks, text, tags):
         ]
     )
 
-@app.callback(
-    Output("output", "children"),
-    [Input("button", "n_clicks")],
-    [State("input_text", "value"), State("tags_text", "value")],
-)
-def kafka_test(n_clicks, text, tags):
-    """The main function, which parses the input fields: <text> and <tags>,
-    packages them in json and sends them to Kafka for processing in
-    the Spark Streaming application."""
-    # on page load, all the buttons get clicked.
+#@app.callback(
+#    Output("output", "children"),
+#    [Input("button", "n_clicks")],
+#    [State("input_text", "value"), State("tags_text", "value")],
+#)
+#def kafka_test(n_clicks, text, tags):
+#    """The main function, which parses the input fields: <text> and <tags>,
+#    packages them in json and sends them to Kafka for processing in
+#    the Spark Streaming application."""
+#    # on page load, all the buttons get clicked.
+#    if n_clicks < 1:
+#        return "Output will appear here"
+#    st = time.time()
+#    if tags.find(",") > 0:
+#        tags = tags.split(",")
+#    else:
+#        tags = [tags]
+#
+#    # make sure Redis is clear before we submit
+#    redis_host = "10.0.0.10"
+#    redis_port = 6379
+#    r = redis.Redis(host=redis_host, port=redis_port)
+#
+#    # connect to kafka cluster
+#    cluster = kafka.KafkaClient("10.0.0.11:9092")
+#    prod = kafka.SimpleProducer(cluster, async=False)
+
+
+data = []
+
+
+@app.callback(Output('update', 'interval'), [Input('kafka-test','n_clicks')])
+def start_kafka(n_clicks):
+    # set initial state to 'off', aka a long interval
     if n_clicks < 1:
-        return "Output will appear here"
-    st = time.time()
-    if tags.find(",") > 0:
-        tags = tags.split(",")
-    else:
-        tags = [tags]
-
-    # make sure Redis is clear before we submit
-    redis_host = "10.0.0.10"
-    redis_port = 6379
-    r = redis.Redis(host=redis_host, port=redis_port)
-
-    # connect to kafka cluster
-    cluster = kafka.KafkaClient("10.0.0.11:9092")
-    prod = kafka.SimpleProducer(cluster, async=False)
-
-data = list(np.random.rand(15))
+	return 500000000
+    return 500
 
 @app.callback(Output('kafka', 'figure'), [Input('update', 'n_intervals')])
 def gen_wind_speed(interval):
@@ -317,6 +328,7 @@ def gen_wind_speed(interval):
     global data
     for i in range(15):
         data.append(np.random.rand(1)[0])
+    data = data[-200:]
     # con = sqlite3.connect("./Data/wind-data.db")
     # df = pd.read_sql_query('SELECT Speed, SpeedError, Direction from Wind where\
     #                         rowid > "{}" AND rowid <= "{}";'
@@ -352,11 +364,12 @@ def gen_wind_speed(interval):
         ),
         yaxis=dict(
             range=[min(0, min(data)),
-                   max(45, max(data))],
+                   max(2,max(data))],
+                   #max(45, max(data))],
             showline=False,
             fixedrange=True,
             zeroline=False,
-            nticks=max(6, round(data/10))
+            nticks=max(6, 12) #round(data/10))
         ),
         margin=Margin(
             t=45,
@@ -365,7 +378,7 @@ def gen_wind_speed(interval):
         )
     )
 
-return Figure(data=[trace], layout=layout)
+    return Figure(data=[trace], layout=layout)
 
 
 
