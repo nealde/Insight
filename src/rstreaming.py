@@ -118,8 +118,8 @@ def get_features(key, compare, limit=True):
     for key in keys:
         key_front = key[:-1]
         key_back = key[-1:]
-        pipe.hget(key_front, key_back+':i')
-        pipe.hget(key_front, key_back+':v')
+#        pipe.hget(key_front, key_back+':i')
+#        pipe.hget(key_front, key_back+':v')
         # pull the data, decompress it, and change the data type
         #inds = np.array(np.frombuffer(zlib.decompress(r.hget(key_front, key_back+':i')),dtype=np.int32))
         #vals = np.array(np.frombuffer(zlib.decompress(r.hget(key_front, key_back+':v')),dtype=np.float16)).astype(np.float64)
@@ -129,24 +129,26 @@ def get_features(key, compare, limit=True):
         #score = cos(inds,vals,inds2,vals2)
         # limit the number of points written to the database
 #        if score > 0.05 and limit:
-    values = pipe.execute()
+#    values = pipe.execute()
     #print(values)
     target_inds = np.array(compare.indices)
     target_vals = np.array(compare.values)
-    inds = values[::2]
-    vals = values[1::2]
+#    inds = values[::2]
+#    vals = values[1::2]
     scores = [(0.0,'blank')]
     data_store = np.zeros((300,2),dtype=np.int32)
 #    max = 0.0
-    for ind, val, key in zip(inds, vals, keys):
-        ind = np.array(np.frombuffer(zlib.decompress(ind),dtype=np.int32))
+    for key in keys:
+#    for ind, val, key in zip(inds, vals, keys):
+#        ind = np.array(np.frombuffer(zlib.decompress(ind),dtype=np.int32))
 #        val = np.random.rand(150)
-        val = np.frombuffer(zlib.decompress(val),dtype=np.float16).astype(np.float64)
+#        val = np.frombuffer(zlib.decompress(val),dtype=np.float16).astype(np.float64)
 #        ind = np.random.randint(0,104857,size=len(val)).astype(np.int32)
 #        sv = SparseVector(1048576, ind, val)
 #        sc = sv.dot(compare)/(compare.norm(2)*sv.norm(2))
         #sc = np.random.rand(1)[0]
-        sc = cos(ind, val, target_inds, target_vals, data_store)
+        sc = cos(target_inds, target_vals, target_inds, target_vals, data_store)
+        sc = np.random.rand(1)[0]
 #        try:
 #            c_inds = common_inds(ind, target_inds)
 #        except:
