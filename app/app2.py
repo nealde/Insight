@@ -60,6 +60,7 @@ app.layout = html.Div(
         html.Div(["Test output will be reported here"], id="output"),
         ], style={'width':'45%','display': 'inline-block'},
     ),
+
     html.Div(children=[
         html.H3('Strain the system using buttons below:'),
         html.Button('Strain Kafka', id='kafka-test'),

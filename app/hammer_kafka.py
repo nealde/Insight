@@ -1,20 +1,23 @@
 import numpy as np
+import random
+import string
 import kafka
 import time
+import json
 
 def hit_n_times(prod, n):
     topic = "cloud"
     # msg = {"text": text, "tags": tags, "index": ind}
     msg_list = []
-    for i in range(nn):
+    for i in range(n):
         k = np.random.randint(0,5)
         ind = "".join(
             random.choice(string.ascii_uppercase + string.ascii_lowercase + string.digits)
             for _ in range(8)
         )
-        msg = {"text": text_list[k], "tags": tags[k], "index": ind}
+        msg = {"text": text_list[k], "tags": tags_list[k], "index": ind}
         msg_list.append(msg)
-    prod.send_messages(topic, [json.dumps(msg).encode("utf-8") for msg in msg_list])
+        prod.send_messages(topic, *[json.dumps(msg).encode("utf-8") for msg in msg_list])
 
 
 def hit(n, pause=None):
@@ -27,7 +30,7 @@ def hit(n, pause=None):
         hit_n_times(prod, 100)
         if pause is not None:
         # optional: pace yourself
-            time.sleep(.001)
+            time.sleep(pause)
     return
 
 
@@ -50,17 +53,6 @@ res = optimize.linprog(-c,A,b,Aeq,beq)  //there is a problem[![enter image descr
 In one of the components in my client/components folder, I am importing three images from the public/images folder. At some point, webpack created a file for each of the images with hashed names like the following: 0e8f1e62f0fe5b5e6d78b2d9f4116311.png. If I delete those files, they do not get recreated and I would like for webpack to just use the images that are provided in the images folder.
 
 Now, I am trying to deploy the application on a proxy server and the hash files are being successfully downloaded on page load but the images are not displaying. I have a hunch that fixing the original webpack issue will fix the issue with the proxy server but I'm not sure about that either.
-
-root
-├── client
-│   └── components
-├── database
-├── public
-│   ├── images
-│   ├── app.js
-│   └── index.html
-└── server
-    └── server.js
 
 const path = require('path');
 
@@ -214,5 +206,5 @@ However, I can't manually update inner HTML; I need the object to do other UX.
 ]
 tags_list = ["python,vscode-settings","javascript,webpack","python-3.x","html","spring, tomcat","sql-server,asp.net-core-2.0","android","javascript, json, api, fetch"]
 
-if __name__ = "__main__":
-    main()
+if __name__ == "__main__":
+    hit(100, pause=1)

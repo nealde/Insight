@@ -12,7 +12,12 @@ import random, string
 
 
 external_stylesheets = ["https://codepen.io/chriddyp/pen/bWLwgP.css"]
+#external_stylesheets=[""]
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
+#app.css.append_css({'external_url': ( 
+#    'cdn.jsdelivr.net/gh/lwileczek/Dash@master/v5.css'
+#)}) 
+app.css.append_css({'external_url': ( ' rawgit.com/lwileczek/Dash/master/undo_redo5.css')})
 
 app.layout = html.Div(
     [
@@ -24,7 +29,7 @@ app.layout = html.Div(
                     "Check to see if your question has already been answered below!"
                 ),
                 html.H5("Or, enter a Stack Overflow link below to find related posts:"),
-                html.Div([html.Button("Randomize!"),],style={'width':'80%'}),
+                html.Div([html.Button("Randomize!",id='randomize-button'),],style={'width':'80%'}),
                 dcc.Textarea(
                     placeholder="Enter a Stack Overflow link...",
                     value="",
@@ -61,63 +66,6 @@ app.layout = html.Div(
         html.Div(["Test output will be reported here"], id="output"),
     ]
 )
-
-default_text = """<p>I am getting unexpected results when adding items to sets that are in a list such that i can specify the set i need by indexing the list as shown in the following code:</p>
-<pre><code>def get_friends_of_users(network):
-f1 = lambda x: x[0]
-f2 = lambda x: x[1]
-users_friends = [set()] * max(max(network, key=f1)[0], max(network, key=f2)[1]+1)
-net_users = set()
-for i in network:
-users_friends[i[0]].add(i[1])
-users_friends[i[1]].add(i[0])
-net_users.add(i[0])
-net_users.add(i[1])
-#print(users_friends)
-return net_users, users_friends
-</code></pre>
-
-<p>let the variable network be the following list of tuples:</p>
-
-<p><code>network = [(3, 5), (2, 1), (2, 4), (1, 5), (5, 0), (3, 2), (3, 0)]</code>
-which describes users and their friends as (user_ID, friend_ID).</p>
-
-<p>I want the variable <code>users_friends</code> to be a list of sets of all friends for each user as following:</p>
-
-<p>User ID=0 has friends with IDs = 3, 5 </p>
-
-<p>User ID=1 has friends with IDs = 2, 5 </p>
-
-<p>User ID=2 has friends with IDs = 1, 3, 4 </p>
-
-<p>User ID=3 has friends with IDs = 0, 2, 5 </p>
-
-<p>User ID=4 has friends with IDs = 2 </p>
-
-<p>User ID=5 has friends with IDs = 0, 1, 3.</p>
-
-<p>But when i uncomment the print statement in the code i can see that every time i execute the statement <code>users_friends[i[0]].add(i[1])</code> or <code>users_friends[i[1]].add(i[0])</code> it adds the item to all sets in the list.</p>
-
-<p>so, this was the output:</p>
-
-<pre><code>[{3, 5}, {3, 5}, {3, 5}, {3, 5}, {3, 5}, {3, 5}]
-
-[{1, 2, 3, 5}, {1, 2, 3, 5}, {1, 2, 3, 5}, {1, 2, 3, 5}, {1, 2, 3, 5}, {1, 2, 3, 5}]
-
-[{1, 2, 3, 4, 5}, {1, 2, 3, 4, 5}, {1, 2, 3, 4, 5}, {1, 2, 3, 4, 5}, {1, 2, 3, 4, 5}, {1, 2, 3, 4, 5}]
-
-[{1, 2, 3, 4, 5}, {1, 2, 3, 4, 5}, {1, 2, 3, 4, 5}, {1, 2, 3, 4, 5}, {1, 2, 3, 4, 5}, {1, 2, 3, 4, 5}]
-
-[{0, 1, 2, 3, 4, 5}, {0, 1, 2, 3, 4, 5}, {0, 1, 2, 3, 4, 5}, {0, 1, 2, 3, 4, 5}, {0, 1, 2, 3, 4, 5}, {0, 1, 2, 3, 4, 5}]
-
-[{0, 1, 2, 3, 4, 5}, {0, 1, 2, 3, 4, 5}, {0, 1, 2, 3, 4, 5}, {0, 1, 2, 3, 4, 5}, {0, 1, 2, 3, 4, 5}, {0, 1, 2, 3, 4, 5}]
-
-[{0, 1, 2, 3, 4, 5}, {0, 1, 2, 3, 4, 5}, {0, 1, 2, 3, 4, 5}, {0, 1, 2, 3, 4, 5}, {0, 1, 2, 3, 4, 5}, {0, 1, 2, 3, 4, 5}]
-</code></pre>
-
-<p><strong><em>My question is: why it adds the item to all sets in the list and how to make it add to the set that i specify by indexing the list of those sets?</em></strong></p>
-
-"""
 
 
 @app.callback(
@@ -182,6 +130,21 @@ def input_test(n_clicks, link):
         return "python, set, list"
 
 
+@app.callback(Output('link_text','value'),
+              [Input('randomize-button','n_clicks'),])
+def get_random_link(n_clicks):
+    if n_clicks < 1:
+        return ""
+    # get the newest stack overflow questions
+#    page = requests.get('https://stackoverflow.com/questions?sort=newest')
+#    tree = xhtml.fromstring(page.content)
+#    questions = tree.xpath('//*[@id="questions"]')  
+#    ref = random.choice(questions[0])
+#    full_ref = 'https://stackoverflow.com/{}'.format(ref[1][0][0].values()[0])
+    full_ref = "https://stackoverflow.com/questions/2213923/removing-duplicates-from-a-list-of-lists"
+    return full_ref
+
+
 @app.callback(
     dash.dependencies.Output("output", "children"),
     [dash.dependencies.Input("button", "n_clicks")],
@@ -237,7 +200,7 @@ def kafka_test(n_clicks, text, tags):
             r.get("success:{}|{}".format(ind, i)).split("|")
         )  # id, similarity
         r.delete("success:{}|{}".format(ind, i))
-
+    
     # build output links
     output = []
     for res in results:
@@ -249,7 +212,7 @@ def kafka_test(n_clicks, text, tags):
 
     return html.Div(
         [
-            html.P("{} Seconds for round-trip calculation".format(time.time() - st)),
+            html.P("{:04.2f} Seconds for round-trip calculation".format(time.time() - st)),
             html.Table(
                 [html.Tr([html.Th(x) for x in ["Similarity", "title"]])]
                 + [
@@ -263,4 +226,4 @@ def kafka_test(n_clicks, text, tags):
 
 
 if __name__ == "__main__":
-    app.run_server(debug=True, host="10.0.0.10", port="8889")
+    app.run_server(host="10.0.0.10", port="8889")
