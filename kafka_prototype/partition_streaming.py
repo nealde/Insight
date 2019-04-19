@@ -270,7 +270,7 @@ def handler(message):
 #        inds = str(zlib.compress(d[0]['features'].indices.tobytes()))
 #        vals = str(zlib.compress(d[0]['features'].values.tobytes()))
         for key in keys2:
-            producer.send('keys',json.dumps({'k':key,'i':inds,'v':vals}).encode('utf-8'))
+            producer.send('keys2',json.dumps({'k':key,'i':inds,'v':vals}).encode('utf-8'))
 
         print(time.time()-st)
 
