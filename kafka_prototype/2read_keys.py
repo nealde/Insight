@@ -6,7 +6,7 @@ from redis import StrictRedis
 import zlib
 r = StrictRedis.from_url('redis://10.0.0.10:6379')
 pipe = r.pipeline()
-consumer = KafkaConsumer('keys2', bootstrap_servers='10.0.0.11:9092', group_id = 'c1')
+consumer = KafkaConsumer('keys2', bootstrap_servers='10.0.0.11:9092')
 #c2 = KafkaConsumer('features', bootstrap_servers='10.0.0.11:9092')
 data_store = np.zeros((300,2),dtype=np.int32)
 
@@ -33,7 +33,7 @@ for msg in consumer:
     msgs = json.loads(msg.value.decode('utf-8'))
     #print(keys)
     keys = msgs['k'].split(',')
-    print(len(keys))
+#    print(len(keys))
     total += len(keys)
     if count%100 == 0:
         print(count, total, time.time()-st, count/(time.time()-st))
@@ -47,45 +47,35 @@ for msg in consumer:
 #    scores_list = []
     # collect all the keys
     scores = [(0.0,'blank')]
-    slice_length = 500
-    processed = 0
-#    print(len(keys))
-    if len(keys) > slice_length:
-        keys2 = []
-        for i in range(0,len(keys),slice_length):
-            keys2.append(keys[i:i+slice_length])
-#        print(len(keys2),len(keys2[0]))
-#        print(len(keys2))
-        for k in keys2:
-            for key in k:
-                processed += 1
-                key_front = key[:-1]
-                key_back = key[-1:]
-                pipe.hget(key_front, key_back+':i')
-                pipe.hget(key_front, key_back+':v')
+    slice_length = 100
+    for key in keys:
+        key_front = key[:-1]
+        key_back = key[-1:]
+        pipe.hget(key_front, key_back+':i')
+        pipe.hget(key_front, key_back+':v')
         # pull the data, decompress it, and change the data type
-            values = pipe.execute()
-            inds = values[::2]
-            vals = values[1::2]
+        values = pipe.execute()
+        inds = values[::2]
+        vals = values[1::2]
             #scores = [(0.0,'blank')]
-            data_store = np.zeros((300,2),dtype=np.int32)
+        data_store = np.zeros((300,2),dtype=np.int32)
 #    max = 0.0
-            for ind, val, kk in zip(inds, vals, k):
-                ind = np.array(np.frombuffer(zlib.decompress(ind),dtype=np.int32))
+        for ind, val, kk in zip(inds, vals, keys):
+            ind = np.array(np.frombuffer(zlib.decompress(ind),dtype=np.int32))
 #        val = np.random.rand(150)
-                val = np.frombuffer(zlib.decompress(val),dtype=np.float16).astype(np.float64)
+            val = np.frombuffer(zlib.decompress(val),dtype=np.float16).astype(np.float64)
 #        ind = np.random.randint(0,104857,size=len(val)).astype(np.int32)
 #        sv = SparseVector(1048576, ind, val)
 #        sc = sv.dot(compare)/(compare.norm(2)*sv.norm(2))
         #sc = np.random.rand(1)[0]
 #                sc = np.random.rand(1)[0]
-                sc = cos(ind, val, target_inds, target_vals, data_store)
+            sc = cos(ind, val, target_inds, target_vals, data_store)
         #sc = cos(ind, val, target_inds, target_vals, data_store)
-                if sc > max(scores)[0] or len(scores) < 5:
-                    scores.append((sc, kk))
+            if sc > max(scores)[0] or len(scores) < 5:
+                scores.append((sc, kk))
+        
 #        scores.append((cos(ind, val, target_inds, target_vals),key))
 #    print(len(scores))
-#    print(processed)
     scores = sorted(scores, reverse=True)
 #    print(scores[:5])
     # write the top 5

@@ -258,7 +258,8 @@ def handler(message):
 #        print(d)
         keys = retrieve_keys(d[0]['tags'])
         # look to optimize slice length based on keys and throughput
-        slice_length = max(len(keys)//10000,min(len(keys)//49,200))
+        slice_length = 5000
+#        slice_length = max(len(keys)//10000,min(len(keys)//49,200))
 #        print(slice_length)
 #        slice_length = 1000
         keys2 = [','.join(keys[i:i+slice_length]) for i in range(0,len(keys),slice_length)]
