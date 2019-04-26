@@ -1,6 +1,6 @@
 import os
 os.environ['PYSPARK_SUBMIT_ARGS'] = '--packages org.apache.spark:spark-streaming-kafka-0-8_2.11:2.2.0 pyspark-shell'
-from pyspark.sql.functions import udf
+from pyspark.sql.functions import udf, col, desc
 from pyspark.sql.types import StringType, DataType, FloatType
 from pyspark.sql import SparkSession
 from pyspark.ml import PipelineModel
@@ -13,12 +13,14 @@ from redis import StrictRedis
 import numpy as np
 import zlib
 import json
+import time
 
 # local cosine similarity in Cython
 from cy_utils3 import cos
 
 
 idfpath = 's3n://neal-dawson-elli-insight-data/models/idf-model3'
+parquetpath = 's3n://neal-dawson-elli-insight-data/models/b5'
 
 spark = SparkSession\
      .builder\
@@ -95,7 +97,13 @@ def cos_np(inds1,vals1,vals2):
     product = np.sum(vals1[i1]*vals2[i2])
     return product/np.linalg.norm(vals1)/np.linalg.norm(vals2)
 
+from pyspark.sql.types import FloatType
+#def cos(a,b):
+#    return float(a.dot(b)/(a.norm(2)*b.norm(2)))
 
+def cos2(a,b):
+    ds = np.zeros((300,2),dtype=np.int32)
+    return cos(a.indices,a.values,b.indices,b.values, ds)
 
 def get_features(key, compare, limit=True):
     """Given the key and the target SparseVector to match, connect to Redis,
@@ -190,19 +198,6 @@ def get_features(key, compare, limit=True):
     #pipe.execute()
     return 1
 
-def retrieve_keys2(top_inds):
-    """Given the most popular inds, return a list of keys"""
-    r = StrictRedis.from_url('redis://10.0.0.10:6379')
-    available_keys = set()
-    for ind in top_inds:
-        print('inds:{}'.format(ind))
-#        try:
-        keys_list = r.get('inds:{}'.format(ind)).split(',')[1:]
-        for key in keys_list:
-            available_keys.add(key)
-#        except:
-        print(str(ind)+' not found!')
-    return list(available_keys)
 
 def retrieve_keys(tags, common=True):
     """Given a list of tags, return the set of keys common to all the tags,
@@ -233,6 +228,8 @@ def retrieve_keys(tags, common=True):
         available_keys = set().intersection(*available_keys)
     return list(available_keys)
 
+
+
 def handler(message):
     """The main function which is applied to the Kafka streaming session
     and iterates through each of the received messages.
@@ -254,31 +251,37 @@ def handler(message):
         data = model.transform(data)
         d = data.select('features','tags').collect()
 #        print(d)
-#        inds = d[0]['features'].indices
-#        vals = d[0]['features'].values
-#        sorted_inds = [y for _, y in sorted(zip(vals, inds), reverse=True)[:10]]
-#        keys = retrieve_keys2(sorted_inds)
-        #print(len(keys))
         keys = retrieve_keys(d[0]['tags'])
-        #actual_key = 'id:2213923'
-        #print(actual_key in keys)
+        keys = [k[3:] for k in keys]
+        cos_udf = udf(lambda r: cos2(r, d[0]['features']), FloatType())
+        st = time.time()
+        #data = spark.read.parquet(parquetpath)
+        downsampled = data2.withColumn('score',cos_udf(col('features'))).sort(desc('score'))
+        downsampled.show(5)
+#        downsampled = data2.where(col('id').isin(keys)).withColumn('score',cos_udf(col('features'))).orderBy(desc('score'))
+#        downsampled.explain()
+#        downsampled.show(5)
+        print(time.time()-st)
+        #relevant = data.where(col('id').isin(keys)).
         # look to optimize slice length based on keys and throughput
-        slice_length = max(len(keys)//10000,min(len(keys)//49,200))
-        print(slice_length)
+        #slice_length = max(len(keys)//10000,min(len(keys)//49,200))
+        #print(slice_length)
 #        slice_length = 1000
-        keys2 = [','.join(keys[i:i+slice_length]) for i in range(0,len(keys),slice_length)]
+        #keys2 = [','.join(keys[i:i+slice_length]) for i in range(0,len(keys),slice_length)]
         #keys2 = [str(keys[(i-1)*slice_length:i*slice_length]) for i in range(len(keys)//slice_length-1)]
-        print(len(keys), len(keys2))
-        keys = spark.createDataFrame(keys2, StringType())
-        score_udf = udf(lambda r: get_features(r,d[0]['features']), FloatType())
-        keys = keys.withColumn('features', score_udf(keys['value'])).collect()
+        #print(len(keys), len(keys2))
+        #keys = spark.createDataFrame(keys2, StringType())
+        #score_udf = udf(lambda r: get_features(r,d[0]['features']), FloatType())
+        #keys = keys.withColumn('features', score_udf(keys['value'])).collect()
         # need to get top result from zadd
-        report_to_redis(job)
+       # report_to_redis(job)
 
     return
 
 model = PipelineModel.load(idfpath)
-ssc = StreamingContext(sc, 0.1)
+ssc = StreamingContext(sc, 2)
+data2 = spark.read.parquet(parquetpath).repartition(700).cache()
+data2.show(20)
 
 kafkaStream = KafkaUtils.createDirectStream(
     ssc,

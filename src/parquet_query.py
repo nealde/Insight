@@ -3,6 +3,7 @@ from pyspark.ml import Pipeline, Transformer, PipelineModel
 from pyspark.ml.feature import HashingTF, IDF, IDFModel, Tokenizer
 from pyspark.sql.functions import udf, struct
 from pyspark.sql.types import StringType
+from redis import StrictRedis
 import numpy as np
 import zlib
 #from __future__ import gzip
@@ -199,14 +200,73 @@ def store_redis(row):
 #            print(tag, curr, idd)
     #r.set(idd, str(
     return 1
-#    return to_write
 
-redis_udf = udf(lambda row: store_redis(row), StringType())
+def retrieve_keys(tags, common=True):
+    """Given a list of tags, return the set of keys common to all the tags,
+    if common is set to true.  Return the Union if it is set to false."""
+    r = StrictRedis.from_url('redis://10.0.0.10:6379')
+    # if tags exist, filter them (later)
+    # print(tags)
+    if tags == []:
+        return []
+    else:
+        print('FILTERING')
+
+        if common:
+            available_keys = set([])
+        else:
+            available_keys = [set([]) for tag in tags]
+        # implement union of sets
+        for count, tag in enumerate(tags):
+             try:
+                 keys_list = r.get(tag.strip()).split(',')[1:]
+                 for key in keys_list:
+                     if common:
+                         available_keys.add(key)
+                     else:
+                         available_keys[count].add(key)
+             except:
+                 print('Tag %s not found - check spelling' % tag)
+    if not common:
+        available_keys = set().intersection(*available_keys)
+    return list(available_keys)
+
+
+#    return to_write
+text = """<p> i am trying to create a report to display a summary of the values of the columns for each row.   a basic analogy would an inventory listing.  say i have about 15 locations like 2a 2b 2c 3a 3b 3c etc.   each location has a variety of items and the items each have a specific set of common descriptions i.e. a rating of 1-9 boolean y or n another boolean y or n.  it looks something like this: </p>    <pre>  <code> 2a   4       y       n 2a   5       y       y 2a   5       n       y 2a   6       n       n       ... 2b   4       n       y   2b   4       y       y       ...etc.  </code>  </pre>    <p> what i would like to produce is a list of locations and summary counts of each attribute: </p>    <pre>  <code> location    1 2 3 4 5 6 7 8 9      y  n        y n      total 2a                1 2 1            2  2        2 2        4 2b                2                1  1        2          2 ... ___________________________________________________________ totals            3 2 1            3  3        4 2        6  </code>  </pre>    <p> the query returns fields:   </p>    <pre>  <code> location_cd string   desc_cd int  y_n_1 string  y_n_2 string  </code>  </pre>    <p> i have tried grouping by location but cannot get the summaries to work.   i tried putting it in a table but that would only take the original query.  i tried to create datasets for each unit and create variables in each one for each of the criteria but that hasn't worked yet either.  but maybe i am way off track and crosstabs would work better?  i tried that and got a total mess the first time.  maybe a bunch of subreports? </p>    <p> can someone point me in the correct direction please?    it seemed easy when i started out but now i am getting nowhere.  i can get the report to print out the raw data but all i need are totals for each column broken down out by location.   </p>"""
+tags = ['python']
+keys = retrieve_keys(tags)
+keys = [k[3:] for k in keys]
+#keys = keys[:10000]
+#keys = ['42059111','11735324','21685967','13204239','24972550','52181884','9326816','32979658','33058573','17638525','37299294','24068147','41395455','10327590','36430667','9437439','17419295']
+
+#print(keys[:10])
+l1 = (text, tags)
+idfpath = 's3n://neal-dawson-elli-insight-data/models/idf-model3'
+#model = PipelineModel.load(idfpath)
+#data = sc.createDataFrame([l1],['cleaned_body','tags'])
+#data = model.transform(data)
+#d = data.select('features').collect()
+
+from pyspark.sql.types import FloatType
+from pyspark.sql.functions import udf, col, desc
+def cos(a,b):
+    return float(a.dot(b)/(a.norm(2)*b.norm(2)))
+
+cos_udf = udf(lambda r: cos(r, d[0]['features']), FloatType())
+
+
+#redis_udf = udf(lambda row: store_redis(row), StringType())
 #sc.read.parquet(parquetpath).show(20)
 dd = sc.read.parquet(parquetpath).repartition(700)
+dd.show(10)
+#dd.where(col('id').isin(keys)).show()
+downsampled = dd.where(col('id').isin(keys)).withColumn('score',cos_udf(col('features'))).orderBy(desc('score'))
+downsampled.take(5)
+
 #dd = dd.select('id','features','title','creation_date')
-dd = dd.withColumn('tw',redis_udf(struct([dd[x] for x in dd.columns]))).select('id','tw')\
-.select('tw').collect()
+#dd = dd.withColumn('tw',redis_udf(struct([dd[x] for x in dd.columns]))).select('id','tw')\
+#.select('tw').collect()
 #.write.format("org.apache.spark.sql.redis").option("table", "id").option("key.column", "id").save()
 
 
