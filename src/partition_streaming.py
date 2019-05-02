@@ -61,42 +61,6 @@ def report_to_redis(job, count=5):
     r.delete('temp0')
     return 0
 
-def common_inds(a,b):
-    inds = []
-    count = 0
-#     print(len(a), len(b))
-    n = len(b)
-#     print(n)
-    m = len(a)
-    total = 0
-    i = 0
-#     while i < m:
-    for k in range(2*m):
-#         print('i:', i, 'count:', count, a[i], b[count])
-        total += 1
-#         print(a[i], b[count])
-        if a[i] == b[count]:
-            inds.append([i,count])
-            count += 1
-        elif a[i] > b[count]:
-            i -= 1
-            count += 1
-        if count >= n:
-            break
-        i += 1
-    return inds
-
-def cos_np(inds1,vals1,vals2):
-#     i1 = np.where(np.isin(inds1,inds2))
-#     i2 = np.where(np.isin(inds2,inds1))
-    inds1 = np.array(inds1, dtype=np.int32)
-    i1 = inds1[:,0]
-    i2 = inds1[:,1]
-    product = np.sum(vals1[i1]*vals2[i2])
-    return product/np.linalg.norm(vals1)/np.linalg.norm(vals2)
-
-
-
 def get_features(key, compare, limit=True):
     """Given the key and the target SparseVector to match, connect to Redis,
     retrieve the compressed NumPy vectors of indices and values, and then
@@ -113,81 +77,36 @@ def get_features(key, compare, limit=True):
     pipe = r.pipeline()
     # change code to be ready for chunks
     keys = key.split(',')
-    
-    # pipeline the key acquisition 
+
+    # pipeline the key acquisition -
+    # Pipelining lets Redis send multiple commands at once,
+    # significantly reducing overhead
     for key in keys:
         key_front = key[:-1]
         key_back = key[-1:]
         pipe.hget(key_front, key_back+':i')
         pipe.hget(key_front, key_back+':v')
-        # pull the data, decompress it, and change the data type
-        #inds = np.array(np.frombuffer(zlib.decompress(r.hget(key_front, key_back+':i')),dtype=np.int32))
-        #vals = np.array(np.frombuffer(zlib.decompress(r.hget(key_front, key_back+':v')),dtype=np.float16)).astype(np.float64)
-        # extract the indives and values from the target SparseVector
-        #inds2 = np.array(compare.indices)
-        #vals2 = np.array(compare.values)
-        #score = cos(inds,vals,inds2,vals2)
-        # limit the number of points written to the database
-#        if score > 0.05 and limit:
     values = pipe.execute()
-    #print(values)
     target_inds = np.array(compare.indices)
     target_vals = np.array(compare.values)
     inds = values[::2]
     vals = values[1::2]
     scores = [(0.0,'blank')]
+    # placeholder array for cython code
     data_store = np.zeros((300,2),dtype=np.int32)
-#    max = 0.0
+
     for ind, val, key in zip(inds, vals, keys):
         ind = np.array(np.frombuffer(zlib.decompress(ind),dtype=np.int32))
-#        val = np.random.rand(150)
         val = np.frombuffer(zlib.decompress(val),dtype=np.float16).astype(np.float64)
-#        ind = np.random.randint(0,104857,size=len(val)).astype(np.int32)
-#        sv = SparseVector(1048576, ind, val)
-#        sc = sv.dot(compare)/(compare.norm(2)*sv.norm(2))
-        #sc = np.random.rand(1)[0]
         sc = cos(ind, val, target_inds, target_vals, data_store)
-#        try:
-#            c_inds = common_inds(ind, target_inds)
-#        except:
-#        print(list(ind), list(target_inds))
-#        print(len(target_inds), len(ind)) 
-#        try:
-#            if len(target_inds) > len(ind):
-#                c_inds = common_inds(ind,target_inds)
-#                sc = cos_np(c_inds,val,target_vals)#
-#
-#            else:
-#                c_inds = common_inds(target_inds, ind)
-#                sc = cos_np(c_inds,target_vals,val)
-#        except Exception, e:
-#            print(e)
-#            sc = 0.1
-#            print(target_inds, ind)
-#        sc = cos(val,target_vals)
-#        try:
-#            sc = cos(ind, val, target_inds, target_vals) #, data_store)
-#        except:
-#            print(e)
-#            sc = 0.1
-#            print(ind, target_inds)
         if sc > max(scores)[0] or len(scores) < 5:
             scores.append((sc, key))
-        
-#        scores.append((cos(ind, val, target_inds, target_vals),key))
-#    print(len(scores))
+
     scores = sorted(scores, reverse=True)
-#    print(scores[:5])
-    # write the top 5
-#    dd = dict()
+    # top 5 scores globally requires top 5 scores locally
     for score, key in scores[:5]:
-#        print(score, key)
         pipe.zadd('temp0', {key:score})
     pipe.execute()
-#        dd[key] = score
-#    r.zadd('temp0', {key: score})
-    #r.zadd('temp0', {key:score})
-    #pipe.execute()
     return 1
 
 def retrieve_keys2(top_inds):
@@ -196,11 +115,9 @@ def retrieve_keys2(top_inds):
     available_keys = set()
     for ind in top_inds:
         print('inds:{}'.format(ind))
-#        try:
         keys_list = r.get('inds:{}'.format(ind)).split(',')[1:]
         for key in keys_list:
             available_keys.add(key)
-#        except:
         print(str(ind)+' not found!')
     return list(available_keys)
 
@@ -253,22 +170,18 @@ def handler(message):
         data = spark.createDataFrame([l1],['cleaned_body','tags'])
         data = model.transform(data)
         d = data.select('features','tags').collect()
-#        print(d)
+        # optional code to implement comparisons v2
 #        inds = d[0]['features'].indices
 #        vals = d[0]['features'].values
 #        sorted_inds = [y for _, y in sorted(zip(vals, inds), reverse=True)[:10]]
 #        keys = retrieve_keys2(sorted_inds)
-        #print(len(keys))
+
         keys = retrieve_keys(d[0]['tags'])
-        #actual_key = 'id:2213923'
-        #print(actual_key in keys)
         # look to optimize slice length based on keys and throughput
         slice_length = max(len(keys)//10000,min(len(keys)//49,200))
         print(slice_length)
-#        slice_length = 1000
         keys2 = [','.join(keys[i:i+slice_length]) for i in range(0,len(keys),slice_length)]
         #keys2 = [str(keys[(i-1)*slice_length:i*slice_length]) for i in range(len(keys)//slice_length-1)]
-        print(len(keys), len(keys2))
         keys = spark.createDataFrame(keys2, StringType())
         score_udf = udf(lambda r: get_features(r,d[0]['features']), FloatType())
         keys = keys.withColumn('features', score_udf(keys['value'])).collect()
