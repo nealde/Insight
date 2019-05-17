@@ -133,14 +133,9 @@ def input_test(n_clicks, link):
 @app.callback(Output('link_text','value'),
               [Input('randomize-button','n_clicks'),])
 def get_random_link(n_clicks):
+    # reject the click on page load
     if n_clicks < 1:
         return ""
-    # get the newest stack overflow questions
-#    page = requests.get('https://stackoverflow.com/questions?sort=newest')
-#    tree = xhtml.fromstring(page.content)
-#    questions = tree.xpath('//*[@id="questions"]')  
-#    ref = random.choice(questions[0])
-#    full_ref = 'https://stackoverflow.com/{}'.format(ref[1][0][0].values()[0])
     full_ref = "https://stackoverflow.com/questions/2213923/removing-duplicates-from-a-list-of-lists"
     return full_ref
 

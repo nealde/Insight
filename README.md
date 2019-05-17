@@ -2,7 +2,7 @@
 
 Efficiently detecting duplicate questions at cloud scale.
 
-Every day, Stack Overflow experiences 6,000 new questions, roughly 20% of which are duplicates.  Currently, these duplicates are manually marked by users who answer questions, which is an extremely tedious process and requires both having a working knowledge of previously answered questions and requires that the other post be linked to.
+Every day, Stack Overflow experiences 6,000 new questions, roughly 5% of which are duplicates.  Currently, these duplicates are manually marked by users who answer questions, which is an extremely tedious process and requires both having a working knowledge of previously answered questions and requires that the other post be linked to.
 
 Automating the duplicate question detection process frees up experts' time and allows them to return to answering interesting questions.
 
